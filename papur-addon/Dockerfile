@@ -1,9 +1,10 @@
 ARG BUILD_FROM=ghcr.io/hassio-addons/base:14.0.2
 FROM ${BUILD_FROM}
 
-# Base image is Alpine. Install node + git so we can install clawdbot.
+# Base image is Alpine. Install Node.js 20+ + git so we can install clawdbot.
+# On HA base images, `nodejs` may be 18.x; use `nodejs-current` for 20+.
 RUN apk add --no-cache \
-    nodejs \
+    nodejs-current \
     npm \
     git \
     bash \
