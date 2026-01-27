@@ -32,11 +32,11 @@ RUN set -eu; \
   mkdir -p /usr/local; \
   tar -xJf /tmp/node.tar.xz -C /usr/local --strip-components=1; \
   rm -f /tmp/node.tar.xz; \
-  echo "Upgrading libstdc++/libgcc from Alpine edge for Node compatibility"; \
-  apk add --no-cache \
+  echo "Upgrading libstdc++/libgcc/libatomic from Alpine edge for Node compatibility"; \
+  apk add --no-cache --upgrade \
     --repository=https://dl-cdn.alpinelinux.org/alpine/edge/main \
     --repository=https://dl-cdn.alpinelinux.org/alpine/edge/community \
-    libstdc++ libgcc; \
+    libstdc++ libgcc libatomic; \
   /usr/local/bin/node -v; /usr/local/bin/npm -v
 
 # Install clawdbot globally
