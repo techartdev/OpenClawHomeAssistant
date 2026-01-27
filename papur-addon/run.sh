@@ -42,14 +42,8 @@ DM_POLICY="pairing"
 ALLOW_FROM_JSON=""
 if [ -n "$ALLOW_FROM_RAW" ]; then
   DM_POLICY="allowlist"
-  # convert "1,2, 3" -> ["1","2","3"]
-  ALLOW_FROM_JSON=$(python3 - <<'PY'
-import os,json
-raw=os.environ.get('ALLOW_FROM_RAW','')
-ids=[s.strip() for s in raw.split(',') if s.strip()]
-print(json.dumps(ids))
-PY
-  )
+  # convert "1,2, 3" -> ["1","2","3"] using jq (no python dependency)
+  ALLOW_FROM_JSON=$(printf '%s' "$ALLOW_FROM_RAW" | jq -R 'split(",") | map(gsub("^\\s+|\\s+$"; "")) | map(select(length>0))')
 fi
 
 # Write Clawdbot gateway config (JSON5) into the expected location.
@@ -76,6 +70,7 @@ cat > /data/.clawdbot/clawdbot.json <<EOF
 EOF
 
 echo "Telegram dmPolicy=${DM_POLICY}${ALLOW_FROM_RAW:+ (allowFrom=${ALLOW_FROM_RAW})}"
+echo "Telegram allowFrom JSON: ${ALLOW_FROM_JSON:-<none>}"
 
 # Connectivity sanity checks (do NOT print the token)
 echo "Sanity check: DNS + Telegram API reachability"
