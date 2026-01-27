@@ -16,9 +16,13 @@ RUN apk add --no-cache \
     tar \
     xz \
     libstdc++ \
-    libgcc
+    libgcc \
+    libatomic \
+    file \
+    pax-utils
 
-RUN set -euo pipefail; \
+# Install Node.js (musl) from unofficial builds (HA base images may not ship Node 22+)
+RUN set -eu; \
   arch=$(uname -m); \
   if [ "$arch" != "x86_64" ]; then echo "Unsupported arch: $arch"; exit 1; fi; \
   url="https://unofficial-builds.nodejs.org/download/release/v${NODE_VERSION}/node-v${NODE_VERSION}-linux-x64-musl.tar.xz"; \
@@ -27,7 +31,11 @@ RUN set -euo pipefail; \
   mkdir -p /usr/local; \
   tar -xJf /tmp/node.tar.xz -C /usr/local --strip-components=1; \
   rm -f /tmp/node.tar.xz; \
-  node -v; npm -v
+  ls -la /usr/local/bin | head; \
+  ls -l /usr/local/bin/node /usr/local/bin/npm || true; \
+  file /usr/local/bin/node || true; \
+  scanelf -n /usr/local/bin/node || true; \
+  /usr/local/bin/node -v; /usr/local/bin/npm -v
 
 # Install clawdbot globally
 RUN npm config set fund false && npm config set audit false \
