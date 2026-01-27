@@ -84,8 +84,9 @@ MikroTik SSH:
 EOF
 
 echo "Running clawdbot doctor (auto-fix) ..."
-# Doctor is idempotent; it will apply any needed config migrations and exit 0.
-clawdbot doctor --fix --yes || true
+# Doctor is idempotent; but in containers it can occasionally hang on environment checks.
+# Put a hard timeout so the gateway still starts.
+(timeout 60s clawdbot doctor --fix --yes) || true
 
 echo "Starting Clawdbot Gateway..."
 exec clawdbot gateway run
