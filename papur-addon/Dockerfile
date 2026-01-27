@@ -19,22 +19,23 @@ RUN apk add --no-cache \
     libgcc \
     libatomic \
     file \
-    pax-utils
+    pax-utils \
+    gcompat \
+    libc6-compat
 
-# Install Node.js (musl) from unofficial builds (HA base images may not ship Node 22+)
+# Install Node.js 22+ (glibc build) and run it on Alpine via gcompat.
+# The musl Node builds can require newer libstdc++ symbols than HA base image provides.
 RUN set -eu; \
   arch=$(uname -m); \
   if [ "$arch" != "x86_64" ]; then echo "Unsupported arch: $arch"; exit 1; fi; \
-  url="https://unofficial-builds.nodejs.org/download/release/v${NODE_VERSION}/node-v${NODE_VERSION}-linux-x64-musl.tar.xz"; \
-  echo "Downloading Node.js $NODE_VERSION (musl) from $url"; \
+  url="https://nodejs.org/dist/v${NODE_VERSION}/node-v${NODE_VERSION}-linux-x64.tar.xz"; \
+  echo "Downloading Node.js $NODE_VERSION (glibc) from $url"; \
   curl -fsSL "$url" -o /tmp/node.tar.xz; \
   mkdir -p /usr/local; \
   tar -xJf /tmp/node.tar.xz -C /usr/local --strip-components=1; \
   rm -f /tmp/node.tar.xz; \
-  ls -la /usr/local/bin | head; \
   ls -l /usr/local/bin/node /usr/local/bin/npm || true; \
   file /usr/local/bin/node || true; \
-  scanelf -n /usr/local/bin/node || true; \
   /usr/local/bin/node -v; /usr/local/bin/npm -v
 
 # Install clawdbot globally
