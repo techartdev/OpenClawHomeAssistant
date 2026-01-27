@@ -19,8 +19,8 @@ RUN apk add --no-cache \
 RUN set -euo pipefail; \
   arch=$(uname -m); \
   if [ "$arch" != "x86_64" ]; then echo "Unsupported arch: $arch"; exit 1; fi; \
-  url="https://nodejs.org/dist/v${NODE_VERSION}/node-v${NODE_VERSION}-linux-x64-musl.tar.xz"; \
-  echo "Downloading Node.js $NODE_VERSION from $url"; \
+  url="https://unofficial-builds.nodejs.org/download/release/v${NODE_VERSION}/node-v${NODE_VERSION}-linux-x64-musl.tar.xz"; \
+  echo "Downloading Node.js $NODE_VERSION (musl) from $url"; \
   curl -fsSL "$url" -o /tmp/node.tar.xz; \
   mkdir -p /usr/local; \
   tar -xJf /tmp/node.tar.xz -C /usr/local --strip-components=1; \
