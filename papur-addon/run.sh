@@ -11,6 +11,7 @@ fi
 
 BOT_TOKEN=$(jq -r '.telegram_bot_token // empty' "$OPTIONS_FILE")
 TZNAME=$(jq -r '.timezone // "Europe/Sofia"' "$OPTIONS_FILE")
+ALLOW_FROM_RAW=$(jq -r '.telegram_allow_from // empty' "$OPTIONS_FILE")
 HA_TOKEN=$(jq -r '.homeassistant_token // empty' "$OPTIONS_FILE")
 MT_HOST=$(jq -r '.mikrotik_host // "192.168.88.1"' "$OPTIONS_FILE")
 MT_USER=$(jq -r '.mikrotik_ssh_user // "papur"' "$OPTIONS_FILE")
@@ -35,8 +36,23 @@ if [ -n "$HA_TOKEN" ]; then
   printf '%s' "$HA_TOKEN" > /data/secrets/homeassistant.token
 fi
 
+# Decide Telegram DM access policy.
+# If telegram_allow_from is set (comma-separated user ids), we use allowlist mode.
+DM_POLICY="pairing"
+ALLOW_FROM_JSON=""
+if [ -n "$ALLOW_FROM_RAW" ]; then
+  DM_POLICY="allowlist"
+  # convert "1,2, 3" -> ["1","2","3"]
+  ALLOW_FROM_JSON=$(python3 - <<'PY'
+import os,json
+raw=os.environ.get('ALLOW_FROM_RAW','')
+ids=[s.strip() for s in raw.split(',') if s.strip()]
+print(json.dumps(ids))
+PY
+  )
+fi
+
 # Write Clawdbot gateway config (JSON5) into the expected location.
-# Use pairing for DMs by default; no hardcoded chat allowlist needed.
 cat > /data/.clawdbot/clawdbot.json <<EOF
 {
   gateway: { mode: "local" },
@@ -52,11 +68,14 @@ cat > /data/.clawdbot/clawdbot.json <<EOF
     telegram: {
       enabled: true,
       botToken: "${BOT_TOKEN}",
-      dmPolicy: "pairing"
+      dmPolicy: "${DM_POLICY}"${ALLOW_FROM_RAW:+,
+      allowFrom: ${ALLOW_FROM_JSON}}
     }
   }
 }
 EOF
+
+echo "Telegram dmPolicy=${DM_POLICY}${ALLOW_FROM_RAW:+ (allowFrom=${ALLOW_FROM_RAW})}"
 
 # Connectivity sanity checks (do NOT print the token)
 echo "Sanity check: DNS + Telegram API reachability"

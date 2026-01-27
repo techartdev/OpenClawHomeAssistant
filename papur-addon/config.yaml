@@ -16,6 +16,9 @@ map:
 options:
   telegram_bot_token: ""
   timezone: "Europe/Sofia"
+  # Optional: lock DMs to specific Telegram user ids (comma-separated).
+  # If set, add-on will use dmPolicy=allowlist and allowFrom=<ids>.
+  telegram_allow_from: ""
   homeassistant_token: ""
   mikrotik_host: "192.168.88.1"
   mikrotik_ssh_user: "papur"
@@ -23,6 +26,7 @@ options:
 schema:
   telegram_bot_token: str
   timezone: str
+  telegram_allow_from: str?
   homeassistant_token: str?
   mikrotik_host: str
   mikrotik_ssh_user: str
