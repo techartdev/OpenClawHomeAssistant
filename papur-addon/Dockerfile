@@ -20,8 +20,7 @@ RUN apk add --no-cache \
     libatomic \
     file \
     pax-utils \
-    gcompat \
-    libc6-compat
+    gcompat
 
 # Install Node.js 22+ (glibc build) and run it on Alpine via gcompat.
 # The musl Node builds can require newer libstdc++ symbols than HA base image provides.
