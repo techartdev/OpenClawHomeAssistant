@@ -69,6 +69,7 @@ cat > /data/.clawdbot/clawdbot.json <<EOF
     mode: "local",
     bind: "${GW_BIND}",
     port: ${GW_PORT},
+    controlUi: { allowInsecureAuth: true },
     ${GW_AUTH_BLOCK}
   },
   agents: {
