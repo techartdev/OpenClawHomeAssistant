@@ -23,6 +23,14 @@ options:
   # Model selection (string like "openai-codex/gpt-5.2" or "ollama/gpt-oss:20b")
   model_primary: "openai-codex/gpt-5.2"
 
+  # Gateway UI exposure (LAN)
+  # - bind: loopback (default) or lan
+  # - port: default 18789
+  # - token: set to a fixed token so Control UI can connect; required if bind=lan
+  gateway_bind: "loopback"
+  gateway_port: 18789
+  gateway_token: ""
+
   homeassistant_token: ""
   mikrotik_host: "192.168.88.1"
   mikrotik_ssh_user: "papur"
@@ -33,6 +41,9 @@ schema:
   timezone: str
   telegram_allow_from: str?
   model_primary: str
+  gateway_bind: list(loopback|lan)
+  gateway_port: int
+  gateway_token: str?
   homeassistant_token: str?
   mikrotik_host: str
   mikrotik_ssh_user: str
