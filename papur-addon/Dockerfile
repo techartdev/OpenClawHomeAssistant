@@ -14,7 +14,9 @@ RUN apk add --no-cache \
     jq \
     curl \
     tar \
-    xz
+    xz \
+    libstdc++ \
+    libgcc
 
 RUN set -euo pipefail; \
   arch=$(uname -m); \
