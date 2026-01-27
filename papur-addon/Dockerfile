@@ -3,7 +3,7 @@ FROM ${BUILD_FROM}
 
 # Base image is Alpine (HA add-ons base). It may only provide Node 18.x.
 # Clawdbot requires Node 20+, so we install a Node 20 musl build directly.
-ARG NODE_VERSION=20.11.1
+ARG NODE_VERSION=22.12.0
 
 RUN apk add --no-cache \
     bash \
