@@ -58,6 +58,22 @@ cat > /data/.clawdbot/clawdbot.json <<EOF
 }
 EOF
 
+# Connectivity sanity checks (do NOT print the token)
+echo "Sanity check: DNS + Telegram API reachability"
+if curl -fsS --max-time 10 https://api.telegram.org/ >/dev/null; then
+  echo "OK: api.telegram.org reachable"
+else
+  echo "WARN: api.telegram.org not reachable from add-on container"
+fi
+
+# Validate token (print only bot username)
+BOT_USER=$(curl -fsS --max-time 10 "https://api.telegram.org/bot${BOT_TOKEN}/getMe" | jq -r '.result.username // empty' || true)
+if [ -n "$BOT_USER" ]; then
+  echo "OK: Telegram token valid for @${BOT_USER}"
+else
+  echo "WARN: Telegram token validation failed (getMe)"
+fi
+
 # Convenience info for later (MikroTik access path & HA token file)
 cat > /data/CONNECTION_NOTES.txt <<EOF
 Home Assistant token (if set): /data/secrets/homeassistant.token
