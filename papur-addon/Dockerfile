@@ -19,22 +19,24 @@ RUN apk add --no-cache \
     libgcc \
     libatomic \
     file \
-    pax-utils \
-    gcompat
+    pax-utils
 
-# Install Node.js 22+ (glibc build) and run it on Alpine via gcompat.
-# The musl Node builds can require newer libstdc++ symbols than HA base image provides.
+# Install Node.js 22+ (musl build) from unofficial builds.
+# Router/base image Alpine may ship an older libstdc++; we pull a newer libstdc++ from edge to satisfy Node's C++ symbols.
 RUN set -eu; \
   arch=$(uname -m); \
   if [ "$arch" != "x86_64" ]; then echo "Unsupported arch: $arch"; exit 1; fi; \
-  url="https://nodejs.org/dist/v${NODE_VERSION}/node-v${NODE_VERSION}-linux-x64.tar.xz"; \
-  echo "Downloading Node.js $NODE_VERSION (glibc) from $url"; \
+  url="https://unofficial-builds.nodejs.org/download/release/v${NODE_VERSION}/node-v${NODE_VERSION}-linux-x64-musl.tar.xz"; \
+  echo "Downloading Node.js $NODE_VERSION (musl) from $url"; \
   curl -fsSL "$url" -o /tmp/node.tar.xz; \
   mkdir -p /usr/local; \
   tar -xJf /tmp/node.tar.xz -C /usr/local --strip-components=1; \
   rm -f /tmp/node.tar.xz; \
-  ls -l /usr/local/bin/node /usr/local/bin/npm || true; \
-  file /usr/local/bin/node || true; \
+  echo "Upgrading libstdc++/libgcc from Alpine edge for Node compatibility"; \
+  apk add --no-cache \
+    --repository=https://dl-cdn.alpinelinux.org/alpine/edge/main \
+    --repository=https://dl-cdn.alpinelinux.org/alpine/edge/community \
+    libstdc++ libgcc; \
   /usr/local/bin/node -v; /usr/local/bin/npm -v
 
 # Install clawdbot globally
