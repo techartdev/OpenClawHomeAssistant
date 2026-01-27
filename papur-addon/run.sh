@@ -67,5 +67,9 @@ MikroTik SSH:
   key=${MT_KEY}
 EOF
 
+echo "Running clawdbot doctor (auto-fix) ..."
+# Doctor is idempotent; it will apply any needed config migrations and exit 0.
+clawdbot doctor --fix --yes || true
+
 echo "Starting Clawdbot Gateway..."
 exec clawdbot gateway run
