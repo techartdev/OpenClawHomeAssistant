@@ -19,7 +19,8 @@ RUN apk add --no-cache \
     libgcc \
     libatomic \
     file \
-    pax-utils
+    pax-utils \
+    python3
 
 # Install Node.js 22+ (musl build) from unofficial builds.
 # Router/base image Alpine may ship an older libstdc++; we pull a newer libstdc++ from edge to satisfy Node's C++ symbols.
