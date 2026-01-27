@@ -12,6 +12,7 @@ fi
 BOT_TOKEN=$(jq -r '.telegram_bot_token // empty' "$OPTIONS_FILE")
 TZNAME=$(jq -r '.timezone // "Europe/Sofia"' "$OPTIONS_FILE")
 ALLOW_FROM_RAW=$(jq -r '.telegram_allow_from // empty' "$OPTIONS_FILE")
+MODEL_PRIMARY=$(jq -r '.model_primary // "openai-codex/gpt-5.2"' "$OPTIONS_FILE")
 HA_TOKEN=$(jq -r '.homeassistant_token // empty' "$OPTIONS_FILE")
 MT_HOST=$(jq -r '.mikrotik_host // "192.168.88.1"' "$OPTIONS_FILE")
 MT_USER=$(jq -r '.mikrotik_ssh_user // "papur"' "$OPTIONS_FILE")
@@ -52,7 +53,11 @@ cat > /data/.clawdbot/clawdbot.json <<EOF
   gateway: { mode: "local" },
   agents: {
     defaults: {
-      workspace: "/data/clawd"
+      workspace: "/data/clawd",
+      model: { primary: "${MODEL_PRIMARY}" },
+      models: {
+        "${MODEL_PRIMARY}": {}
+      }
     },
     list: [
       { id: "main" }
@@ -68,6 +73,8 @@ cat > /data/.clawdbot/clawdbot.json <<EOF
   }
 }
 EOF
+
+echo "Model primary=${MODEL_PRIMARY}"
 
 echo "Telegram dmPolicy=${DM_POLICY}${ALLOW_FROM_RAW:+ (allowFrom=${ALLOW_FROM_RAW})}"
 echo "Telegram allowFrom JSON: ${ALLOW_FROM_JSON:-<none>}"

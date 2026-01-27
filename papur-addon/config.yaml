@@ -19,14 +19,20 @@ options:
   # Optional: lock DMs to specific Telegram user ids (comma-separated).
   # If set, add-on will use dmPolicy=allowlist and allowFrom=<ids>.
   telegram_allow_from: ""
+
+  # Model selection (string like "openai-codex/gpt-5.2" or "ollama/gpt-oss:20b")
+  model_primary: "openai-codex/gpt-5.2"
+
   homeassistant_token: ""
   mikrotik_host: "192.168.88.1"
   mikrotik_ssh_user: "papur"
   mikrotik_ssh_key_path: "/data/keys/mikrotik_papur_nopw"
+
 schema:
   telegram_bot_token: str
   timezone: str
   telegram_allow_from: str?
+  model_primary: str
   homeassistant_token: str?
   mikrotik_host: str
   mikrotik_ssh_user: str
