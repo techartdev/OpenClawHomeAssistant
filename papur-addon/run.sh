@@ -126,10 +126,16 @@ MikroTik SSH:
   key=${MT_KEY}
 EOF
 
-echo "Running clawdbot doctor (auto-fix) ..."
-# Doctor is idempotent; but in containers it can occasionally hang on environment checks.
-# Put a hard timeout so the gateway still starts.
-(timeout 60s clawdbot doctor --fix --yes) || true
+RUN_DOCTOR=$(jq -r '.run_doctor_on_start // false' "$OPTIONS_FILE")
+
+if [ "$RUN_DOCTOR" = "true" ]; then
+  echo "Running clawdbot doctor (auto-fix) ..."
+  # Doctor is idempotent; but in containers it can occasionally hang on environment checks.
+  # Put a hard timeout so the gateway still starts.
+  (timeout 60s clawdbot doctor --fix --yes) || true
+else
+  echo "Skipping clawdbot doctor on startup (run_doctor_on_start=false)"
+fi
 
 echo "Starting Clawdbot Gateway..."
 exec clawdbot gateway run

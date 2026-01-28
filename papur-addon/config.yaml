@@ -31,6 +31,9 @@ options:
   gateway_port: 18789
   gateway_token: ""
 
+  # Run `clawdbot doctor --fix` on startup (useful after upgrades; slows restarts)
+  run_doctor_on_start: false
+
   homeassistant_token: ""
   mikrotik_host: "192.168.88.1"
   mikrotik_ssh_user: "papur"
@@ -44,6 +47,7 @@ schema:
   gateway_bind: list(loopback|lan)
   gateway_port: int
   gateway_token: str?
+  run_doctor_on_start: bool
   homeassistant_token: str?
   mikrotik_host: str
   mikrotik_ssh_user: str
