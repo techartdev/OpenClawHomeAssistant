@@ -18,6 +18,7 @@ GW_PORT=$(jq -r '.gateway_port // 18789' "$OPTIONS_FILE")
 GW_TOKEN=$(jq -r '.gateway_token // empty' "$OPTIONS_FILE")
 HA_TOKEN=$(jq -r '.homeassistant_token // empty' "$OPTIONS_FILE")
 BRAVE_KEY=$(jq -r '.brave_api_key // empty' "$OPTIONS_FILE")
+ENABLE_TERMINAL=$(jq -r '.enable_terminal // false' "$OPTIONS_FILE")
 MT_HOST=$(jq -r '.mikrotik_host // "192.168.88.1"' "$OPTIONS_FILE")
 MT_USER=$(jq -r '.mikrotik_ssh_user // "papur"' "$OPTIONS_FILE")
 MT_KEY=$(jq -r '.mikrotik_ssh_key_path // "/data/keys/mikrotik_papur_nopw"' "$OPTIONS_FILE")
@@ -225,7 +226,18 @@ fi
 GW_PID=""
 
 shutdown() {
-  echo "Shutdown requested; stopping gateway..."
+  echo "Shutdown requested; stopping services..."
+
+  if [ -n "${NGINX_PID}" ] && kill -0 "${NGINX_PID}" >/dev/null 2>&1; then
+    kill -TERM "${NGINX_PID}" >/dev/null 2>&1 || true
+    wait "${NGINX_PID}" || true
+  fi
+
+  if [ -n "${TTYD_PID}" ] && kill -0 "${TTYD_PID}" >/dev/null 2>&1; then
+    kill -TERM "${TTYD_PID}" >/dev/null 2>&1 || true
+    wait "${TTYD_PID}" || true
+  fi
+
   if [ -n "${GW_PID}" ] && kill -0 "${GW_PID}" >/dev/null 2>&1; then
     kill -TERM "${GW_PID}" >/dev/null 2>&1 || true
     wait "${GW_PID}" || true
@@ -238,8 +250,47 @@ shutdown() {
 
 trap shutdown INT TERM
 
+NGINX_PID=""
+TTYD_PID=""
+
 echo "Starting Clawdbot Gateway..."
 clawdbot gateway run &
 GW_PID=$!
 
+# Start web terminal (optional)
+if [ "$ENABLE_TERMINAL" = "true" ]; then
+  echo "Starting web terminal (ttyd) on 127.0.0.1:7681 ..."
+  # -W: allow clients to write (interactive)
+  # -p: port
+  # bind localhost only; exposed to HA via ingress reverse proxy
+  ttyd -W -i 127.0.0.1 -p 7681 bash &
+  TTYD_PID=$!
+else
+  echo "Terminal disabled (enable_terminal=false)"
+fi
+
+# Start ingress reverse proxy (nginx). This provides the add-on UI inside HA.
+# Token is injected server-side; never put it in the browser URL.
+
+# Render nginx config from template with the gateway token.
+python3 - <<'PY'
+import os
+from pathlib import Path
+
+tpl = Path('/etc/nginx/nginx.conf.tpl').read_text()
+token = os.environ.get('GW_TOKEN','')
+if not token:
+    # Keep nginx running, but gateway UI will remain inaccessible.
+    # This avoids breaking the add-on UI completely if token is unset.
+    print('WARN: gateway_token is empty; ingress proxy will not be able to authenticate to gateway UI.')
+
+conf = tpl.replace('__GATEWAY_TOKEN__', token)
+Path('/etc/nginx/nginx.conf').write_text(conf)
+PY
+
+echo "Starting ingress proxy (nginx) on :8099 ..."
+nginx -g 'daemon off;' &
+NGINX_PID=$!
+
+# Wait for gateway; if it exits, shut down others.
 wait "${GW_PID}"

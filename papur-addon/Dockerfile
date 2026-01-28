@@ -20,7 +20,9 @@ RUN apk add --no-cache \
     libatomic \
     file \
     pax-utils \
-    python3
+    python3 \
+    nginx \
+    ttyd
 
 # Install Node.js 22+ (musl build) from unofficial builds.
 # Router/base image Alpine may ship an older libstdc++; we pull a newer libstdc++ from edge to satisfy Node's C++ symbols.
@@ -45,6 +47,8 @@ RUN npm config set fund false && npm config set audit false \
  && npm install -g clawdbot
 
 COPY run.sh /run.sh
-RUN chmod +x /run.sh
+COPY nginx.conf.tpl /etc/nginx/nginx.conf.tpl
+RUN chmod +x /run.sh \
+ && mkdir -p /run/nginx
 
 CMD [ "/run.sh" ]
