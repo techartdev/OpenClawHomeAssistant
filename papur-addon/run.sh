@@ -102,6 +102,18 @@ echo "Telegram dmPolicy=${DM_POLICY}${ALLOW_FROM_RAW:+ (allowFrom=${ALLOW_FROM_R
 echo "Telegram allowFrom JSON: ${ALLOW_FROM_JSON:-<none>}"
 
 # Connectivity sanity checks (do NOT print the token)
+# Auth store debug (redacted): never print tokens
+AUTH_STORE="/data/.clawdbot/agents/main/agent/auth-profiles.json"
+if [ -f "$AUTH_STORE" ]; then
+  echo "Auth store present at $AUTH_STORE"
+  echo "Auth store summary (redacted):"
+  jq -r '"version="+((.version//"?")|tostring),
+         "profiles="+(((.profiles//{})|keys|join(","))),
+         "providers="+(((.profiles//{})|to_entries|map(.value.provider // "?")|unique|join(",")))' "$AUTH_STORE" 2>/dev/null || echo "(could not parse auth store JSON)"
+else
+  echo "Auth store not found at $AUTH_STORE"
+fi
+
 echo "Sanity check: DNS + Telegram API reachability"
 if curl -fsS --max-time 10 https://api.telegram.org/ >/dev/null; then
   echo "OK: api.telegram.org reachable"
