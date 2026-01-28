@@ -17,6 +17,7 @@ GW_BIND=$(jq -r '.gateway_bind // "loopback"' "$OPTIONS_FILE")
 GW_PORT=$(jq -r '.gateway_port // 18789' "$OPTIONS_FILE")
 GW_TOKEN=$(jq -r '.gateway_token // empty' "$OPTIONS_FILE")
 HA_TOKEN=$(jq -r '.homeassistant_token // empty' "$OPTIONS_FILE")
+BRAVE_KEY=$(jq -r '.brave_api_key // empty' "$OPTIONS_FILE")
 MT_HOST=$(jq -r '.mikrotik_host // "192.168.88.1"' "$OPTIONS_FILE")
 MT_USER=$(jq -r '.mikrotik_ssh_user // "papur"' "$OPTIONS_FILE")
 MT_KEY=$(jq -r '.mikrotik_ssh_key_path // "/data/keys/mikrotik_papur_nopw"' "$OPTIONS_FILE")
@@ -98,11 +99,20 @@ else
 fi
 
 # ------------------------------------------------------------------------------
-# Store HA token (optional) in a local file for later use by the HA skill/tooling.
+# Store tokens / export env vars (optional)
 # ------------------------------------------------------------------------------
+
+# Home Assistant long-lived token (for local HA API scripts/tools)
 if [ -n "$HA_TOKEN" ]; then
   umask 077
   printf '%s' "$HA_TOKEN" > /config/secrets/homeassistant.token
+fi
+
+# Brave Search API key (for clawdbot's web_search tool, which reads BRAVE_API_KEY)
+if [ -n "$BRAVE_KEY" ]; then
+  export BRAVE_API_KEY="$BRAVE_KEY"
+  umask 077
+  printf '%s' "$BRAVE_KEY" > /config/secrets/brave_api_key
 fi
 
 # Decide Telegram DM access policy.
