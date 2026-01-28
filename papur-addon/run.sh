@@ -30,14 +30,20 @@ export TZ="$TZNAME"
 # Reduce risk of secrets ending up in logs
 set +x
 
-# Persist everything under /data
-export HOME=/data
-mkdir -p /data/.clawdbot /data/clawd /data/keys /data/secrets
+# HA add-ons mount persistent storage at /config (maps to /addon_configs/<slug> on the host).
+# Use /config as HOME so Clawdbot finds its auth store and config there.
+export HOME=/config
+mkdir -p /config/.clawdbot /config/clawd /config/keys /config/secrets
+
+# Back-compat: some docs/scripts assume /data; point it at /config.
+if [ ! -e /data ]; then
+  ln -s /config /data || true
+fi
 
 # Store HA token (optional) in a local file for later use by the HA skill/tooling.
 if [ -n "$HA_TOKEN" ]; then
   umask 077
-  printf '%s' "$HA_TOKEN" > /data/secrets/homeassistant.token
+  printf '%s' "$HA_TOKEN" > /config/secrets/homeassistant.token
 fi
 
 # Decide Telegram DM access policy.
@@ -63,7 +69,7 @@ if [ -z "$GW_TOKEN" ]; then
   GW_AUTH_BLOCK="auth: { mode: \"token\" }"
 fi
 
-cat > /data/.clawdbot/clawdbot.json <<EOF
+cat > /config/.clawdbot/clawdbot.json <<EOF
 {
   gateway: {
     mode: "local",
@@ -74,7 +80,7 @@ cat > /data/.clawdbot/clawdbot.json <<EOF
   },
   agents: {
     defaults: {
-      workspace: "/data/clawd",
+      workspace: "/config/clawd",
       model: { primary: "${MODEL_PRIMARY}" },
       models: {
         "${MODEL_PRIMARY}": {}
@@ -103,7 +109,7 @@ echo "Telegram allowFrom JSON: ${ALLOW_FROM_JSON:-<none>}"
 
 # Connectivity sanity checks (do NOT print the token)
 # Auth store debug (redacted): never print tokens
-AUTH_STORE="/data/.clawdbot/agents/main/agent/auth-profiles.json"
+AUTH_STORE="/config/.clawdbot/agents/main/agent/auth-profiles.json"
 if [ -f "$AUTH_STORE" ]; then
   echo "Auth store present at $AUTH_STORE"
   echo "Auth store summary (redacted):"
@@ -130,8 +136,8 @@ else
 fi
 
 # Convenience info for later (MikroTik access path & HA token file)
-cat > /data/CONNECTION_NOTES.txt <<EOF
-Home Assistant token (if set): /data/secrets/homeassistant.token
+cat > /config/CONNECTION_NOTES.txt <<EOF
+Home Assistant token (if set): /config/secrets/homeassistant.token
 MikroTik SSH:
   host=${MT_HOST}
   user=${MT_USER}
