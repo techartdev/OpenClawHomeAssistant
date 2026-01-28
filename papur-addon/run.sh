@@ -21,6 +21,10 @@ MT_HOST=$(jq -r '.mikrotik_host // "192.168.88.1"' "$OPTIONS_FILE")
 MT_USER=$(jq -r '.mikrotik_ssh_user // "papur"' "$OPTIONS_FILE")
 MT_KEY=$(jq -r '.mikrotik_ssh_key_path // "/data/keys/mikrotik_papur_nopw"' "$OPTIONS_FILE")
 
+# Optional: allow disabling lock cleanup if you ever need to debug
+CLEAN_LOCKS_ON_START=$(jq -r '.clean_session_locks_on_start // true' "$OPTIONS_FILE")
+CLEAN_LOCKS_ON_EXIT=$(jq -r '.clean_session_locks_on_exit // true' "$OPTIONS_FILE")
+
 if [ -z "$BOT_TOKEN" ]; then
   echo "You must set telegram_bot_token in the add-on configuration."
   exit 1
@@ -40,14 +44,68 @@ if [ ! -e /data ]; then
   ln -s /config /data || true
 fi
 
+# Ensure these exist so cleanup doesn't fail
+mkdir -p /config/.clawdbot/agents/main/sessions || true
+
+# ------------------------------------------------------------------------------
+# SINGLE-INSTANCE GUARD (prevents multiple gateway runs racing each other)
+# ------------------------------------------------------------------------------
+STARTUP_LOCK="/config/.clawdbot/gateway.start.lock"
+exec 9>"$STARTUP_LOCK"
+if ! flock -n 9; then
+  echo "ERROR: Another instance appears to be running (could not acquire $STARTUP_LOCK)."
+  echo "If this is wrong, check for stuck processes or remove the lock file."
+  exit 1
+fi
+
+# ------------------------------------------------------------------------------
+# Session lock cleanup helpers
+# ------------------------------------------------------------------------------
+
+# Returns 0 if a clawdbot gateway process appears to be running, else 1
+gateway_running() {
+  pgrep -f "clawdbot.*gateway.*run" >/dev/null 2>&1
+}
+
+cleanup_session_locks() {
+  local sessions_dir="/config/.clawdbot/agents/main/sessions"
+  local glob1="${sessions_dir}"/*.jsonl.lock
+
+  shopt -s nullglob
+  local locks=( $glob1 )
+  shopt -u nullglob
+
+  if [ ${#locks[@]} -eq 0 ]; then
+    return 0
+  fi
+
+  # If gateway is running, do NOT remove locks automatically (could be real).
+  if gateway_running; then
+    echo "INFO: Gateway appears to be running; leaving session lock files untouched."
+    echo "INFO: Locks present: ${#locks[@]}"
+    return 0
+  fi
+
+  echo "INFO: Removing stale session lock files (${#locks[@]}) from ${sessions_dir}"
+  rm -f "${sessions_dir}"/*.jsonl.lock || true
+}
+
+# Cleanup on start (stale locks after crashes/restarts)
+if [ "$CLEAN_LOCKS_ON_START" = "true" ]; then
+  cleanup_session_locks
+else
+  echo "INFO: clean_session_locks_on_start=false; skipping session lock cleanup."
+fi
+
+# ------------------------------------------------------------------------------
 # Store HA token (optional) in a local file for later use by the HA skill/tooling.
+# ------------------------------------------------------------------------------
 if [ -n "$HA_TOKEN" ]; then
   umask 077
   printf '%s' "$HA_TOKEN" > /config/secrets/homeassistant.token
 fi
 
 # Decide Telegram DM access policy.
-# If telegram_allow_from is set (comma-separated user ids), we use allowlist mode.
 DM_POLICY="pairing"
 ALLOW_FROM_JSON=""
 if [ -n "$ALLOW_FROM_RAW" ]; then
@@ -56,7 +114,6 @@ if [ -n "$ALLOW_FROM_RAW" ]; then
   ALLOW_FROM_JSON=$(printf '%s' "$ALLOW_FROM_RAW" | jq -R 'split(",") | map(gsub("^\\s+|\\s+$"; "")) | map(select(length>0))')
 fi
 
-# Write Clawdbot gateway config (JSON5) into the expected location.
 # Validate gateway exposure settings
 if [ "$GW_BIND" = "lan" ] && [ -z "$GW_TOKEN" ]; then
   echo "ERROR: gateway_bind=lan requires gateway_token to be set (do not expose an unauthenticated gateway)."
@@ -69,6 +126,7 @@ if [ -z "$GW_TOKEN" ]; then
   GW_AUTH_BLOCK="auth: { mode: \"token\" }"
 fi
 
+# Write Clawdbot gateway config (JSON5) into the expected location.
 cat > /config/.clawdbot/clawdbot.json <<EOF
 {
   gateway: {
@@ -103,11 +161,9 @@ EOF
 
 echo "Model primary=${MODEL_PRIMARY}"
 echo "Gateway bind=${GW_BIND} port=${GW_PORT} token=${GW_TOKEN:+(set)}${GW_TOKEN:-(auto)}"
-
 echo "Telegram dmPolicy=${DM_POLICY}${ALLOW_FROM_RAW:+ (allowFrom=${ALLOW_FROM_RAW})}"
 echo "Telegram allowFrom JSON: ${ALLOW_FROM_JSON:-<none>}"
 
-# Connectivity sanity checks (do NOT print the token)
 # Auth store debug (redacted): never print tokens
 AUTH_STORE="/config/.clawdbot/agents/main/agent/auth-profiles.json"
 if [ -f "$AUTH_STORE" ]; then
@@ -148,12 +204,32 @@ RUN_DOCTOR=$(jq -r '.run_doctor_on_start // false' "$OPTIONS_FILE")
 
 if [ "$RUN_DOCTOR" = "true" ]; then
   echo "Running clawdbot doctor (auto-fix) ..."
-  # Doctor is idempotent; but in containers it can occasionally hang on environment checks.
-  # Put a hard timeout so the gateway still starts.
   (timeout 60s clawdbot doctor --fix --yes) || true
 else
   echo "Skipping clawdbot doctor on startup (run_doctor_on_start=false)"
 fi
 
+# ------------------------------------------------------------------------------
+# Graceful shutdown handling (PID 1 trap) to reduce stale locks
+# ------------------------------------------------------------------------------
+GW_PID=""
+
+shutdown() {
+  echo "Shutdown requested; stopping gateway..."
+  if [ -n "${GW_PID}" ] && kill -0 "${GW_PID}" >/dev/null 2>&1; then
+    kill -TERM "${GW_PID}" >/dev/null 2>&1 || true
+    wait "${GW_PID}" || true
+  fi
+
+  if [ "$CLEAN_LOCKS_ON_EXIT" = "true" ]; then
+    cleanup_session_locks || true
+  fi
+}
+
+trap shutdown INT TERM
+
 echo "Starting Clawdbot Gateway..."
-exec clawdbot gateway run
+clawdbot gateway run &
+GW_PID=$!
+
+wait "${GW_PID}"
