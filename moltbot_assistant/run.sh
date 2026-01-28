@@ -64,7 +64,7 @@ fi
 # Session lock cleanup helpers
 # ------------------------------------------------------------------------------
 
-# Returns 0 if a clawdbot gateway process appears to be running, else 1
+# Returns 0 if a gateway process appears to be running, else 1
 gateway_running() {
   pgrep -f "clawdbot.*gateway.*run" >/dev/null 2>&1
 }
@@ -214,7 +214,7 @@ EOF
 RUN_DOCTOR=$(jq -r '.run_doctor_on_start // false' "$OPTIONS_FILE")
 
 if [ "$RUN_DOCTOR" = "true" ]; then
-  echo "Running clawdbot doctor (auto-fix) ..."
+  echo "Running assistant doctor (auto-fix) ..."
   (timeout 60s clawdbot doctor --fix --yes) || true
 else
   echo "Skipping clawdbot doctor on startup (run_doctor_on_start=false)"
@@ -253,7 +253,7 @@ trap shutdown INT TERM
 NGINX_PID=""
 TTYD_PID=""
 
-echo "Starting Clawdbot Gateway..."
+echo "Starting Moltbot Assistant gateway (clawdbot-compatible)..."
 clawdbot gateway run &
 GW_PID=$!
 
