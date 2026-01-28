@@ -1,8 +1,8 @@
 name: Papur (Clawdbot)
-version: "0.1.0"
+version: "0.2.0"
 slug: papur_clawdbot
 description: Run Clawdbot (Papur) as a Home Assistant add-on.
-url: https://github.com/YOURNAME/ha-addon-papur
+url: https://github.com/techartdev/ClawdHAAddOn
 arch:
   - amd64
 startup: services
@@ -38,6 +38,10 @@ options:
   mikrotik_host: "192.168.88.1"
   mikrotik_ssh_user: "papur"
   mikrotik_ssh_key_path: "/data/keys/mikrotik_papur_nopw"
+  # Cleanup stale session lock files left after crashes/restarts
+  clean_session_locks_on_start: true
+  clean_session_locks_on_exit: true
+
 
 schema:
   telegram_bot_token: str
@@ -52,3 +56,6 @@ schema:
   mikrotik_host: str
   mikrotik_ssh_user: str
   mikrotik_ssh_key_path: str
+  clean_session_locks_on_start: bool?
+  clean_session_locks_on_exit: bool?
+
