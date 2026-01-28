@@ -1,7 +1,7 @@
-name: Papur (Clawdbot)
-version: "0.2.0"
-slug: papur_clawdbot
-description: Run Clawdbot (Papur) as a Home Assistant add-on.
+name: Moltbot Assistant
+version: "0.3.0"
+slug: moltbot_assistant
+description: Run Moltbot Assistant (Clawdbot-compatible) as a Home Assistant add-on.
 url: https://github.com/techartdev/ClawdHAAddOn
 arch:
   - amd64
@@ -15,7 +15,7 @@ host_network: true
 # Home Assistant Ingress (UI inside the add-on page)
 ingress: true
 ingress_port: 8099
-panel_title: Papur
+panel_title: Moltbot Assistant
 panel_icon: mdi:robot
 
 map:
@@ -42,9 +42,10 @@ options:
   run_doctor_on_start: false
 
   homeassistant_token: ""
-  mikrotik_host: "192.168.88.1"
-  mikrotik_ssh_user: "papur"
-  mikrotik_ssh_key_path: "/data/keys/mikrotik_papur_nopw"
+  # Optional: MikroTik SSH defaults (leave empty if you don't use MikroTik)
+  mikrotik_host: ""
+  mikrotik_ssh_user: ""
+  mikrotik_ssh_key_path: "/data/keys/mikrotik"
   # Brave Search API key (optional; enables Brave-backed web search tool)
   brave_api_key: ""
 

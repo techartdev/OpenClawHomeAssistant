@@ -19,9 +19,9 @@ GW_TOKEN=$(jq -r '.gateway_token // empty' "$OPTIONS_FILE")
 HA_TOKEN=$(jq -r '.homeassistant_token // empty' "$OPTIONS_FILE")
 BRAVE_KEY=$(jq -r '.brave_api_key // empty' "$OPTIONS_FILE")
 ENABLE_TERMINAL=$(jq -r '.enable_terminal // false' "$OPTIONS_FILE")
-MT_HOST=$(jq -r '.mikrotik_host // "192.168.88.1"' "$OPTIONS_FILE")
-MT_USER=$(jq -r '.mikrotik_ssh_user // "papur"' "$OPTIONS_FILE")
-MT_KEY=$(jq -r '.mikrotik_ssh_key_path // "/data/keys/mikrotik_papur_nopw"' "$OPTIONS_FILE")
+MT_HOST=$(jq -r '.mikrotik_host // empty' "$OPTIONS_FILE")
+MT_USER=$(jq -r '.mikrotik_ssh_user // empty' "$OPTIONS_FILE")
+MT_KEY=$(jq -r '.mikrotik_ssh_key_path // "/data/keys/mikrotik"' "$OPTIONS_FILE")
 
 # Optional: allow disabling lock cleanup if you ever need to debug
 CLEAN_LOCKS_ON_START=$(jq -r '.clean_session_locks_on_start // true' "$OPTIONS_FILE")
