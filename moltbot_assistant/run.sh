@@ -266,7 +266,8 @@ if [ "$ENABLE_TERMINAL" = "true" ]; then
   # -p: port
   # bind localhost only; exposed to HA via ingress reverse proxy
   # ttyd is writable by default; use -R for read-only. (Some builds don't support -W)
-  ttyd -i 127.0.0.1 -p 7681 bash &
+  # -b sets the base path so it works behind Ingress (/terminal/)
+  ttyd -i 127.0.0.1 -p 7681 -b /terminal bash &
   TTYD_PID=$!
 else
   echo "Terminal disabled (enable_terminal=false)"
@@ -276,6 +277,8 @@ fi
 # Token is injected server-side; never put it in the browser URL.
 
 # Render nginx config from template with the gateway token.
+# NOTE: This intentionally exposes the token in the browser URL via a redirect.
+# This matches Clawdbot Control UI's current expectations.
 GW_TOKEN="$GW_TOKEN" python3 - <<'PY'
 import os
 from pathlib import Path
@@ -283,9 +286,7 @@ from pathlib import Path
 tpl = Path('/etc/nginx/nginx.conf.tpl').read_text()
 token = os.environ.get('GW_TOKEN','')
 if not token:
-    # Keep nginx running, but gateway UI will remain inaccessible.
-    # This avoids breaking the add-on UI completely if token is unset.
-    print('WARN: gateway_token is empty; ingress proxy will not be able to authenticate to gateway UI.')
+    print('WARN: gateway_token is empty; ingress UI will redirect with an empty token and Control UI will not authenticate.')
 
 conf = tpl.replace('__GATEWAY_TOKEN__', token)
 Path('/etc/nginx/nginx.conf').write_text(conf)
