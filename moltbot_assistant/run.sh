@@ -131,63 +131,53 @@ if [ "$GW_BIND" = "lan" ] && [ -z "$GW_TOKEN" ]; then
   exit 1
 fi
 
-GW_AUTH_BLOCK="auth: { mode: \"token\", token: \"${GW_TOKEN}\" }"
-if [ -z "$GW_TOKEN" ]; then
-  # Let doctor generate one (loopback-only is still protected by local access)
-  GW_AUTH_BLOCK="auth: { mode: \"token\" }"
-fi
+# Build auth JSON: prefer fixed token (required for ingress proxy to work reliably)
+AUTH_TOKEN="$GW_TOKEN"
 
 # Write Clawdbot gateway config (strict JSON) into the expected location.
-# We generate JSON with python to avoid JSON5-only syntax and comma edge cases.
-GW_BIND="$GW_BIND" GW_PORT="$GW_PORT" MODEL_PRIMARY="$MODEL_PRIMARY" \
-BOT_TOKEN="$BOT_TOKEN" DM_POLICY="$DM_POLICY" ALLOW_FROM_JSON='${ALLOW_FROM_JSON:-}' \
-python3 - <<'PY'
-import json, os
-from pathlib import Path
+# Use jq (available in the image) to avoid JSON5 syntax.
+if [ -n "${ALLOW_FROM_JSON:-}" ]; then
+  ALLOW_FROM_ARG="--argjson allowFrom ${ALLOW_FROM_JSON}"
+else
+  ALLOW_FROM_ARG=""
+fi
 
-cfg = {
-  "discovery": {"wideArea": {"enabled": False}},
-  "gateway": {
-    "mode": "local",
-    "bind": os.environ["GW_BIND"],
-    "port": int(os.environ["GW_PORT"]),
-    "controlUi": {"allowInsecureAuth": True},
-  },
-  "agents": {
-    "defaults": {
-      "workspace": "/config/clawd",
-      "model": {"primary": os.environ["MODEL_PRIMARY"]},
-      "models": {os.environ["MODEL_PRIMARY"]: {}},
+# shellcheck disable=SC2086
+jq -n \
+  --arg modelPrimary "$MODEL_PRIMARY" \
+  --arg botToken "$BOT_TOKEN" \
+  --arg dmPolicy "$DM_POLICY" \
+  --arg bind "$GW_BIND" \
+  --argjson port "$GW_PORT" \
+  --arg token "$AUTH_TOKEN" \
+  $ALLOW_FROM_ARG \
+  '
+  def maybeAllowFrom: if (has("allowFrom") and (.allowFrom|type=="array") and (.allowFrom|length>0)) then {allowFrom: .allowFrom} else {} end;
+  def maybeToken: if (.token|length)>0 then {auth:{mode:"token", token:.token}} else {auth:{mode:"token"}} end;
+
+  {
+    agents: {
+      defaults: {
+        model: {primary: $modelPrimary},
+        models: {($modelPrimary): {}},
+        workspace: "/config/clawd",
+        maxConcurrent: 4,
+        subagents: {maxConcurrent: 8}
+      },
+      list: [{id:"main"}]
     },
-    "list": [{"id": "main"}],
-  },
-  "channels": {
-    "telegram": {
-      "enabled": True,
-      "botToken": os.environ["BOT_TOKEN"],
-      "dmPolicy": os.environ["DM_POLICY"],
-    }
-  },
-}
-
-allow_from_json = os.environ.get("ALLOW_FROM_JSON", "").strip()
-if allow_from_json:
-  try:
-    allow_from = json.loads(allow_from_json)
-    if isinstance(allow_from, list) and allow_from:
-      cfg["channels"]["telegram"]["allowFrom"] = allow_from
-  except Exception:
-    pass
-
-# Auth block: embed token when provided, otherwise keep mode=token (auto-generate).
-token = os.environ.get("GW_TOKEN", "").strip()
-if token:
-  cfg["gateway"]["auth"] = {"mode": "token", "token": token}
-else:
-  cfg["gateway"]["auth"] = {"mode": "token"}
-
-Path('/config/.clawdbot/clawdbot.json').write_text(json.dumps(cfg, indent=2) + "\n")
-PY
+    commands: {native:"auto", nativeSkills:"auto"},
+    channels: {
+      telegram: (
+        {enabled:true, botToken:$botToken, dmPolicy:$dmPolicy} + maybeAllowFrom
+      )
+    },
+    gateway: (
+      {mode:"local", bind:$bind, port:$port, controlUi:{allowInsecureAuth:true}} + maybeToken
+    ),
+    discovery: {wideArea:{enabled:false}}
+  }
+  ' > /config/.clawdbot/clawdbot.json
 
 echo "Model primary=${MODEL_PRIMARY}"
 echo "Gateway bind=${GW_BIND} port=${GW_PORT} token=${GW_TOKEN:+(set)}${GW_TOKEN:-(auto)}"
@@ -296,18 +286,12 @@ fi
 # Render nginx config from template with the gateway token.
 # NOTE: This intentionally exposes the token in the browser URL via a redirect.
 # This matches Clawdbot Control UI's current expectations.
-GW_TOKEN="$GW_TOKEN" python3 - <<'PY'
-import os
-from pathlib import Path
-
-tpl = Path('/etc/nginx/nginx.conf.tpl').read_text()
-token = os.environ.get('GW_TOKEN','')
-if not token:
-    print('WARN: gateway_token is empty; ingress UI will redirect with an empty token and Control UI will not authenticate.')
-
-conf = tpl.replace('__GATEWAY_TOKEN__', token)
-Path('/etc/nginx/nginx.conf').write_text(conf)
-PY
+if [ -z "$GW_TOKEN" ]; then
+  echo "WARN: gateway_token is empty; ingress UI will redirect with an empty token and Control UI will not authenticate."
+fi
+# Escape token for sed replacement
+ESC_TOKEN=$(printf '%s' "$GW_TOKEN" | sed -e 's/[\\&|]/\\\\&/g')
+sed -e "s|__GATEWAY_TOKEN__|${ESC_TOKEN}|g" /etc/nginx/nginx.conf.tpl > /etc/nginx/nginx.conf
 
 echo "Starting ingress proxy (nginx) on :8099 ..."
 nginx -g 'daemon off;' &
