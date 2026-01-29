@@ -16,12 +16,6 @@ http {
   sendfile        on;
   keepalive_timeout  65;
 
-  # Inject gateway token server-side. Token is substituted into this template at runtime.
-  map $args $args_with_token {
-    ""      "token=__GATEWAY_TOKEN__";
-    default "$args&token=__GATEWAY_TOKEN__";
-  }
-
   server {
     listen 8099;
 
@@ -32,18 +26,25 @@ http {
       proxy_set_header Upgrade $http_upgrade;
       proxy_set_header Connection "upgrade";
       proxy_set_header Host $host;
-      proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+      proxy_set_header X-Real-IP $remote_addr;
+      proxy_set_header X-Forwarded-For $remote_addr;
       proxy_set_header X-Forwarded-Proto $scheme;
     }
 
-    # Everything else -> Clawdbot gateway UI (websocket capable)
+    # Gateway UI
+    # Ensure the browser URL includes token=... (Clawdbot UI expects it client-side).
     location / {
-      proxy_pass http://127.0.0.1:18789$uri?$args_with_token;
+      if ($arg_token = "") {
+        return 302 $scheme://$host$request_uri?token=__GATEWAY_TOKEN__;
+      }
+
+      proxy_pass http://127.0.0.1:18789;
       proxy_http_version 1.1;
       proxy_set_header Upgrade $http_upgrade;
       proxy_set_header Connection "upgrade";
       proxy_set_header Host $host;
-      proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+      proxy_set_header X-Real-IP $remote_addr;
+      proxy_set_header X-Forwarded-For $remote_addr;
       proxy_set_header X-Forwarded-Proto $scheme;
     }
   }
