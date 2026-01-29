@@ -137,40 +137,57 @@ if [ -z "$GW_TOKEN" ]; then
   GW_AUTH_BLOCK="auth: { mode: \"token\" }"
 fi
 
-# Write Clawdbot gateway config (JSON5) into the expected location.
-cat > /config/.clawdbot/clawdbot.json <<EOF
-{
-  discovery: { wideArea: { enabled: false } },
+# Write Clawdbot gateway config (strict JSON) into the expected location.
+# We generate JSON with python to avoid JSON5-only syntax and comma edge cases.
+GW_BIND="$GW_BIND" GW_PORT="$GW_PORT" MODEL_PRIMARY="$MODEL_PRIMARY" \
+BOT_TOKEN="$BOT_TOKEN" DM_POLICY="$DM_POLICY" ALLOW_FROM_JSON='${ALLOW_FROM_JSON:-}' \
+python3 - <<'PY'
+import json, os
+from pathlib import Path
 
-  gateway: {
-    mode: "local",
-    bind: "${GW_BIND}",
-    port: ${GW_PORT},
-    controlUi: { allowInsecureAuth: true },
-    ${GW_AUTH_BLOCK}
+cfg = {
+  "discovery": {"wideArea": {"enabled": False}},
+  "gateway": {
+    "mode": "local",
+    "bind": os.environ["GW_BIND"],
+    "port": int(os.environ["GW_PORT"]),
+    "controlUi": {"allowInsecureAuth": True},
   },
-  agents: {
-    defaults: {
-      workspace: "/config/clawd",
-      model: { primary: "${MODEL_PRIMARY}" },
-      models: {
-        "${MODEL_PRIMARY}": {}
-      }
+  "agents": {
+    "defaults": {
+      "workspace": "/config/clawd",
+      "model": {"primary": os.environ["MODEL_PRIMARY"]},
+      "models": {os.environ["MODEL_PRIMARY"]: {}},
     },
-    list: [
-      { id: "main" }
-    ]
+    "list": [{"id": "main"}],
   },
-  channels: {
-    telegram: {
-      enabled: true,
-      botToken: "${BOT_TOKEN}",
-      dmPolicy: "${DM_POLICY}"${ALLOW_FROM_RAW:+,
-      allowFrom: ${ALLOW_FROM_JSON}}
+  "channels": {
+    "telegram": {
+      "enabled": True,
+      "botToken": os.environ["BOT_TOKEN"],
+      "dmPolicy": os.environ["DM_POLICY"],
     }
-  }
+  },
 }
-EOF
+
+allow_from_json = os.environ.get("ALLOW_FROM_JSON", "").strip()
+if allow_from_json:
+  try:
+    allow_from = json.loads(allow_from_json)
+    if isinstance(allow_from, list) and allow_from:
+      cfg["channels"]["telegram"]["allowFrom"] = allow_from
+  except Exception:
+    pass
+
+# Auth block: embed token when provided, otherwise keep mode=token (auto-generate).
+token = os.environ.get("GW_TOKEN", "").strip()
+if token:
+  cfg["gateway"]["auth"] = {"mode": "token", "token": token}
+else:
+  cfg["gateway"]["auth"] = {"mode": "token"}
+
+Path('/config/.clawdbot/clawdbot.json').write_text(json.dumps(cfg, indent=2) + "\n")
+PY
 
 echo "Model primary=${MODEL_PRIMARY}"
 echo "Gateway bind=${GW_BIND} port=${GW_PORT} token=${GW_TOKEN:+(set)}${GW_TOKEN:-(auto)}"
