@@ -52,7 +52,23 @@ http {
       proxy_set_header X-Forwarded-Proto $scheme;
     }
 
-    # Everything else (assets, ws, etc.) just proxy through.
+    # WebSocket endpoint compatibility:
+    # Some clients/UIs assume a dedicated /ws path. The gateway websocket endpoint
+    # itself is at /, so we map /ws -> / when proxying.
+    location /ws {
+      proxy_pass http://127.0.0.1:18789/;
+      proxy_http_version 1.1;
+      proxy_set_header Upgrade $http_upgrade;
+      proxy_set_header Connection "upgrade";
+      proxy_set_header Host $host;
+      proxy_set_header X-Real-IP $remote_addr;
+      proxy_set_header X-Forwarded-For $remote_addr;
+      proxy_set_header X-Forwarded-Proto $scheme;
+      proxy_read_timeout 3600s;
+      proxy_send_timeout 3600s;
+    }
+
+    # Everything else (assets, api, etc.) just proxy through.
     location / {
       proxy_pass http://127.0.0.1:18789;
       proxy_http_version 1.1;
