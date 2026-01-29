@@ -140,6 +140,9 @@ fi
 # Write Clawdbot gateway config (JSON5) into the expected location.
 cat > /config/.clawdbot/clawdbot.json <<EOF
 {
+  # Disable wide-area discovery/bonjour announcements; HAOS networking can flap interfaces and crash ciao.
+  discovery: { wideArea: { enabled: false } },
+
   gateway: {
     mode: "local",
     bind: "${GW_BIND}",
@@ -263,7 +266,8 @@ if [ "$ENABLE_TERMINAL" = "true" ]; then
   # -W: allow clients to write (interactive)
   # -p: port
   # bind localhost only; exposed to HA via ingress reverse proxy
-  ttyd -W -i 127.0.0.1 -p 7681 bash &
+  # ttyd is writable by default; use -R for read-only. (Some builds don't support -W)
+  ttyd -i 127.0.0.1 -p 7681 bash &
   TTYD_PID=$!
 else
   echo "Terminal disabled (enable_terminal=false)"
@@ -273,7 +277,7 @@ fi
 # Token is injected server-side; never put it in the browser URL.
 
 # Render nginx config from template with the gateway token.
-python3 - <<'PY'
+GW_TOKEN="$GW_TOKEN" python3 - <<'PY'
 import os
 from pathlib import Path
 
