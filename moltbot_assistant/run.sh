@@ -140,7 +140,6 @@ fi
 # Write Clawdbot gateway config (JSON5) into the expected location.
 cat > /config/.clawdbot/clawdbot.json <<EOF
 {
-  # Disable wide-area discovery/bonjour announcements; HAOS networking can flap interfaces and crash ciao.
   discovery: { wideArea: { enabled: false } },
 
   gateway: {
