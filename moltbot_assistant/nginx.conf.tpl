@@ -32,12 +32,28 @@ http {
     }
 
     # Gateway UI
-    # Ensure the browser URL includes token=... (Clawdbot UI expects it client-side).
-    location / {
+    # IMPORTANT: We must not redirect to an absolute "/..." path because Home Assistant Ingress
+    # strips the ingress prefix before forwarding to the add-on. An absolute Location would jump
+    # out of ingress (to the HA host root). So we use a *relative* redirect.
+
+    # Only redirect the root document to add token in the browser URL.
+    location = / {
       if ($arg_token = "") {
-        return 302 $scheme://$host$request_uri?token=__GATEWAY_TOKEN__;
+        return 302 ?token=__GATEWAY_TOKEN__;
       }
 
+      proxy_pass http://127.0.0.1:18789;
+      proxy_http_version 1.1;
+      proxy_set_header Upgrade $http_upgrade;
+      proxy_set_header Connection "upgrade";
+      proxy_set_header Host $host;
+      proxy_set_header X-Real-IP $remote_addr;
+      proxy_set_header X-Forwarded-For $remote_addr;
+      proxy_set_header X-Forwarded-Proto $scheme;
+    }
+
+    # Everything else (assets, ws, etc.) just proxy through.
+    location / {
       proxy_pass http://127.0.0.1:18789;
       proxy_http_version 1.1;
       proxy_set_header Upgrade $http_upgrade;
