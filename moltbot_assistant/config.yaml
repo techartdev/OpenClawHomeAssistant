@@ -1,5 +1,5 @@
 name: Moltbot Assistant
-version: "0.4.6"
+version: "0.4.7"
 slug: moltbot_assistant
 description: Run Moltbot Assistant (Clawdbot-compatible) as a Home Assistant add-on.
 url: https://github.com/techartdev/MoltBotHomeAssistant
@@ -39,6 +39,7 @@ options:
   gateway_token: ""
 
   # Public base URL for opening the Gateway Web UI in a new tab (not embedded).
+  # Recommended: NO trailing slash.
   # Example: "https://example.duckdns.org:12345" or "http://192.168.1.10:18789"
   gateway_public_url: ""
 

@@ -71,7 +71,7 @@ http {
         <div class="card">
           <h2 style="margin:0 0 8px 0">Moltbot Assistant</h2>
           <div class="row" style="margin-bottom:6px">
-            <a class="btn" href="__GATEWAY_PUBLIC_URL__/?token=__GATEWAY_TOKEN__" target="_blank" rel="noopener noreferrer">Open Gateway Web UI</a>
+            <a class="btn" href="__GATEWAY_PUBLIC_URL____GW_PUBLIC_URL_PATH__?token=__GATEWAY_TOKEN__" target="_blank" rel="noopener noreferrer">Open Gateway Web UI</a>
             <a class="btn secondary" href="./terminal/" target="_self">Open Terminal (full page)</a>
           </div>
           <div class="muted">

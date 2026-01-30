@@ -299,8 +299,12 @@ tpl = Path('/etc/nginx/nginx.conf.tpl').read_text()
 token = os.environ.get('GW_TOKEN','')
 public_url = os.environ.get('GW_PUBLIC_URL','')
 
+# Normalize gateway_public_url for building the link: ensure there is exactly one slash
+# between base URL and path. We keep the displayed base as-is, but compute a safe suffix.
+# If base ends with '/', use empty suffix. Otherwise use '/'.
 conf = tpl.replace('__GATEWAY_TOKEN__', token)
 conf = conf.replace('__GATEWAY_PUBLIC_URL__', public_url)
+conf = conf.replace('__GW_PUBLIC_URL_PATH__', '' if public_url.endswith('/') else '/')
 
 Path('/etc/nginx/nginx.conf').write_text(conf)
 PY

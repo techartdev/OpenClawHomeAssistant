@@ -54,7 +54,7 @@ To open the gateway UI in a separate tab reliably:
 - Set a **fixed** `gateway_token` (required when `gateway_bind=lan`)
 
 2) Tell the add-on what URL to open:
-- Set `gateway_public_url` to a base URL that the browser can reach.
+- Set `gateway_public_url` to a base URL that the browser can reach (recommended: **no trailing slash**).
 
 Examples:
 - LAN only: `http://homeassistant.local:18789` (or `http://192.168.1.10:18789`)
