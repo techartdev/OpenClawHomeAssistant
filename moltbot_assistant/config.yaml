@@ -1,5 +1,5 @@
 name: Moltbot Assistant
-version: "0.4.3"
+version: "0.4.4"
 slug: moltbot_assistant
 description: Run Moltbot Assistant (Clawdbot-compatible) as a Home Assistant add-on.
 url: https://github.com/techartdev/ClawdHAAddOn
@@ -46,7 +46,15 @@ options:
   run_doctor_on_start: false
 
   homeassistant_token: ""
-  # Optional: MikroTik SSH defaults (leave empty if you don't use MikroTik)
+
+  # Optional: Router SSH defaults (leave empty if you don't need router automation)
+  # This is a generic SSH configuration intended for a router/firewall or any network device
+  # reachable from inside the HA host LAN.
+  router_ssh_host: ""
+  router_ssh_user: ""
+  router_ssh_key_path: "/data/keys/router_ssh"
+
+  # Backward compatible (deprecated): older config names
   mikrotik_host: ""
   mikrotik_ssh_user: ""
   mikrotik_ssh_key_path: "/data/keys/mikrotik"
@@ -72,9 +80,16 @@ schema:
   gateway_public_url: str?
   run_doctor_on_start: bool
   homeassistant_token: str?
-  mikrotik_host: str
-  mikrotik_ssh_user: str
-  mikrotik_ssh_key_path: str
+
+  router_ssh_host: str
+  router_ssh_user: str
+  router_ssh_key_path: str
+
+  # Backward compatible (deprecated)
+  mikrotik_host: str?
+  mikrotik_ssh_user: str?
+  mikrotik_ssh_key_path: str?
+
   brave_api_key: str?
   enable_terminal: bool?
   clean_session_locks_on_start: bool?

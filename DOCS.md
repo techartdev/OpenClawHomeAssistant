@@ -73,7 +73,24 @@ Notes:
 - `telegram_allow_from`: comma-separated Telegram user IDs (locks DMs)
 - `brave_api_key`: exported as `BRAVE_API_KEY` (for web search)
 - `homeassistant_token`: written to `/config/secrets/homeassistant.token` inside the container
-- MikroTik SSH fields: `mikrotik_host`, `mikrotik_ssh_user`, `mikrotik_ssh_key_path`
+
+### Router SSH (generic)
+This add-on supports a **generic SSH configuration** for a router/firewall (or any LAN network device)
+when you want the assistant to automate local network changes (e.g., port forwarding, DNS records,
+firewall rules).
+
+Config fields:
+- `router_ssh_host`: host/IP of the router (reachable from the HA host network)
+- `router_ssh_user`: SSH username
+- `router_ssh_key_path`: path to the private key file inside the add-on (default: `/data/keys/router_ssh`)
+
+How to provide the SSH key:
+- Put the private key file under the add-on config directory so it appears in-container at `/data/keys/...`.
+- Ensure permissions are restricted (recommended `chmod 600`).
+
+Back-compat:
+- Older versions used MikroTik-branded names: `mikrotik_host`, `mikrotik_ssh_user`, `mikrotik_ssh_key_path`.
+  These are still accepted but **deprecated**.
 
 ## Troubleshooting
 
@@ -87,5 +104,4 @@ Notes:
 
 ### Gateway button opens but cannot connect
 - Confirm the browser can reach `gateway_public_url`.
-- Confirm your NAT/port-forward rules (if using DuckDNS/Nabu Casa is **not** involved here).
-- If you want Nabu Casa support for the gateway UI, do **not** expose the gateway; use the assistant via Telegram and keep gateway loopback.
+- Confirm your NAT/port-forward rules.

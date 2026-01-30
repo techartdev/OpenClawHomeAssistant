@@ -20,9 +20,20 @@ GW_PUBLIC_URL=$(jq -r '.gateway_public_url // empty' "$OPTIONS_FILE")
 HA_TOKEN=$(jq -r '.homeassistant_token // empty' "$OPTIONS_FILE")
 BRAVE_KEY=$(jq -r '.brave_api_key // empty' "$OPTIONS_FILE")
 ENABLE_TERMINAL=$(jq -r '.enable_terminal // false' "$OPTIONS_FILE")
+# Generic router SSH settings (preferred)
+ROUTER_HOST=$(jq -r '.router_ssh_host // empty' "$OPTIONS_FILE")
+ROUTER_USER=$(jq -r '.router_ssh_user // empty' "$OPTIONS_FILE")
+ROUTER_KEY=$(jq -r '.router_ssh_key_path // "/data/keys/router_ssh"' "$OPTIONS_FILE")
+
+# Backward compatible (deprecated) MikroTik-named settings
 MT_HOST=$(jq -r '.mikrotik_host // empty' "$OPTIONS_FILE")
 MT_USER=$(jq -r '.mikrotik_ssh_user // empty' "$OPTIONS_FILE")
 MT_KEY=$(jq -r '.mikrotik_ssh_key_path // "/data/keys/mikrotik"' "$OPTIONS_FILE")
+
+# Prefer generic router_* values; fall back to mikrotik_* if router_* are empty
+[ -z "$ROUTER_HOST" ] && ROUTER_HOST="$MT_HOST"
+[ -z "$ROUTER_USER" ] && ROUTER_USER="$MT_USER"
+[ "$ROUTER_KEY" = "/data/keys/router_ssh" ] && [ -n "$MT_KEY" ] && ROUTER_KEY="$MT_KEY"
 
 # Optional: allow disabling lock cleanup if you ever need to debug
 CLEAN_LOCKS_ON_START=$(jq -r '.clean_session_locks_on_start // true' "$OPTIONS_FILE")
@@ -205,13 +216,13 @@ else
   echo "WARN: Telegram token validation failed (getMe)"
 fi
 
-# Convenience info for later (MikroTik access path & HA token file)
+# Convenience info for later (router SSH access path & HA token file)
 cat > /config/CONNECTION_NOTES.txt <<EOF
 Home Assistant token (if set): /config/secrets/homeassistant.token
-MikroTik SSH:
-  host=${MT_HOST}
-  user=${MT_USER}
-  key=${MT_KEY}
+Router SSH (generic):
+  host=${ROUTER_HOST}
+  user=${ROUTER_USER}
+  key=${ROUTER_KEY}
 EOF
 
 RUN_DOCTOR=$(jq -r '.run_doctor_on_start // false' "$OPTIONS_FILE")
