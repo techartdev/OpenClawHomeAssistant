@@ -1,47 +1,58 @@
-# OpenClaw Assistant – Home Assistant Add-on (Draft)
+# OpenClaw Assistant – Home Assistant Add-on
 
-This repository contains a Home Assistant add-on that runs an **OpenClaw Assistant** instance on **HAOS**.
+This repository contains a Home Assistant add-on that runs **OpenClaw** inside **Home Assistant OS (HAOS)**.
 
-Upstream note: the project has gone through renames. This add-on installs **OpenClaw**.
+> Upstream rename history (FYI): clawdbot → moltbot → **openclaw** (final).
 
 ## What you get
-- Always-on personal assistant running as a Supervisor-managed container
-- Home Assistant **Ingress UI** (the assistant Gateway UI inside the add-on page)
-- Optional **web terminal** inside Home Assistant (disabled by default)
-- Persistent data stored under the add-on config directory (in-container: `/config`)
 
-## Security defaults
-- Gateway binds to **loopback** by default (not exposed on LAN)
-- Terminal is **off by default**
-- Tokens/IDs are provided via add-on options and are never hardcoded
+- An always-on OpenClaw gateway running as a Supervisor-managed add-on.
+- A reliable **Ingress landing page** inside Home Assistant that includes:
+  - an embedded **web terminal** (ttyd)
+  - a button to open the **Gateway Web UI** in a **separate browser tab** (not embedded)
+- Persistent state under the add-on config directory (in-container: `/config`).
 
-## Install (high level)
-1. Add this repo in Home Assistant:
-   Settings → Add-ons → Add-on Store → ⋮ → Repositories
-2. Install **OpenClaw Assistant**
-3. Configure options (at minimum: Telegram bot token)
+## Why the Gateway UI is not embedded in Ingress
 
-## Setup / Docs
-See **DOCS.md** for the supported setups:
-- embedded terminal via Ingress
-- opening Gateway Web UI in a new tab (not embedded)
+The Gateway Web UI requires WebSockets that can be flaky through HA Ingress depending on proxying/mixed-content.
+So we **don’t embed** it. Instead, the Ingress page gives you a button that opens the Gateway UI directly using
+`gateway_public_url`.
 
-## Configuration
-All configuration is done via the add-on UI.
-See the schema in `openclaw_assistant/config.yaml`.
+## Security model (high level)
 
-### Optional: Brave Search
-If you provide `brave_api_key`, the add-on exports `BRAVE_API_KEY` for the assistant’s web search tool.
+- The add-on **does not** manage or overwrite OpenClaw’s full config.
+- OpenClaw is configured via its own interactive tools (`openclaw setup`, `openclaw onboard`, `openclaw configure`) using the terminal.
+- On first boot only (when config is missing), the add-on bootstraps a minimal config to let the gateway start:
+  - `gateway.mode=local`
+  - `gateway.auth.mode=token` with a generated token
 
-### Optional: Home Assistant token
-If you provide `homeassistant_token`, it is written to `/config/secrets/homeassistant.token` inside the container for local scripts/tools.
+## Install
 
-### Optional: Router SSH (generic)
-If you want the assistant to automate local network/router configuration over SSH, see **DOCS.md** (Router SSH section).
+1. Home Assistant → **Settings → Add-ons → Add-on store**
+2. **⋮ → Repositories**
+3. Add this repo:
+   - `https://github.com/techartdev/OpenClawHomeAssistant`
+4. Install **OpenClaw Assistant**
 
-## UI
-- The main add-on page loads the Gateway UI via **Ingress**.
-- If enabled, web terminal is available at `/terminal/` under the ingress UI.
+## First run (recommended)
 
-## Status
-This is still in "draft" while we finalize naming, docs, and a public release process.
+1. Open the add-on page (Ingress) and use the embedded terminal.
+2. Run one of:
+   - `openclaw onboard`
+   - `openclaw configure`
+3. (Optional, but recommended) Set **gateway_public_url** in add-on options.
+   - Then the Ingress page will show an "Open Gateway Web UI" button.
+
+## Add-on options (kept intentionally small)
+
+See `openclaw_assistant/config.yaml` for the authoritative schema.
+
+- `enable_terminal` (default: **true**) — enables the embedded web terminal.
+- `gateway_public_url` — only used to build the external Gateway UI link.
+- `timezone`
+- `homeassistant_token` (optional) — written to `/config/secrets/homeassistant.token` for local scripts.
+- `router_ssh_*` (optional) — SSH settings for a router/network device (custom automation).
+
+## Docs
+
+See **DOCS.md** for more detailed setup and troubleshooting.
