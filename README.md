@@ -21,6 +21,11 @@ Upstream note: Moltbot is the new name for the Clawdbot project. The add-on may 
 2. Install **Moltbot Assistant**
 3. Configure options (at minimum: Telegram bot token)
 
+## Setup / Docs
+See **DOCS.md** for the supported setups:
+- embedded terminal via Ingress
+- opening Gateway Web UI in a new tab (not embedded)
+
 ## Configuration
 All configuration is done via the add-on UI.
 See the schema in `moltbot_assistant/config.yaml`.
