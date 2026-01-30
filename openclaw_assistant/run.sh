@@ -200,8 +200,9 @@ fi
 
 # Render nginx config from template.
 # The gateway token is NOT managed by the add-on; OpenClaw will generate/store it.
-# If we don't know it yet, the landing page will show a hint instead of a broken link.
-GW_PUBLIC_URL="$GW_PUBLIC_URL" python3 - <<'PY'
+# Best-effort: query it via CLI (works even if openclaw.json is JSON5). If unknown, we hide the button.
+GW_TOKEN="$(timeout 2s openclaw config get gateway.auth.token 2>/dev/null | tr -d '\n' || true)"
+GW_PUBLIC_URL="$GW_PUBLIC_URL" GW_TOKEN="$GW_TOKEN" python3 - <<'PY'
 import os
 from pathlib import Path
 
@@ -209,17 +210,8 @@ tpl = Path('/etc/nginx/nginx.conf.tpl').read_text()
 landing_tpl = Path('/etc/nginx/landing.html.tpl').read_text()
 public_url = os.environ.get('GW_PUBLIC_URL','')
 
-# Best-effort: read token from OpenClaw config if it exists and is strict JSON.
-# (If it's JSON5 or missing, we leave token empty and the landing page will guide the user.)
-token = ''
-try:
-    cfg_path = Path('/config/.openclaw/openclaw.json')
-    if cfg_path.exists():
-        import json
-        cfg = json.loads(cfg_path.read_text(encoding='utf-8'))
-        token = (((cfg.get('gateway') or {}).get('auth') or {}).get('token')) or ''
-except Exception:
-    token = ''
+# Token comes from environment (best-effort CLI query in run.sh)
+token = os.environ.get('GW_TOKEN','')
 
 gw_path = '' if public_url.endswith('/') else '/'
 
