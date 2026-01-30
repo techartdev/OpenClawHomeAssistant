@@ -155,6 +155,10 @@ def env(name):
     v = os.environ.get(name, '')
     return v if v != '' else None
 
+# Ensure gateway.mode is set so `openclaw gateway run` can start.
+# Safe default for the add-on.
+set_path(cfg, ['gateway', 'mode'], 'local')
+
 # gateway bind/port/token
 bind_ = env('GW_BIND')
 if bind_:
@@ -265,7 +269,8 @@ if ! command -v openclaw >/dev/null 2>&1; then
 fi
 
 echo "Starting OpenClaw Assistant gateway (openclaw)..."
-openclaw gateway run &
+# Allow starting even if user hasn't completed onboarding / config wizard yet.
+openclaw gateway run --allow-unconfigured &
 GW_PID=$!
 
 # Start web terminal (optional)
