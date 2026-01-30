@@ -71,13 +71,32 @@ http {
         <div class="card">
           <h2 style="margin:0 0 8px 0">OpenClaw Assistant</h2>
           <div class="row" style="margin-bottom:6px">
-            <a class="btn" href="__GATEWAY_PUBLIC_URL____GW_PUBLIC_URL_PATH__?token=__GATEWAY_TOKEN__" target="_blank" rel="noopener noreferrer">Open Gateway Web UI</a>
+            <a class="btn" id="gwbtn" href="__GATEWAY_PUBLIC_URL____GW_PUBLIC_URL_PATH__?token=__GATEWAY_TOKEN__" target="_blank" rel="noopener noreferrer">Open Gateway Web UI</a>
             <a class="btn secondary" href="./terminal/" target="_self">Open Terminal (full page)</a>
           </div>
-          <div class="muted">
+          <div class="muted" id="gwhint">
             Tip: The gateway UI is intentionally opened outside of Ingress to avoid websocket/proxy issues.
-            Configure <code>gateway_public_url</code> in the add-on options.
+            Configure <code>gateway_public_url</code> in the add-on options, then complete onboarding in the terminal.
           </div>
+          <script>
+            (function(){
+              var publicUrl = '__GATEWAY_PUBLIC_URL__';
+              var token = '__GATEWAY_TOKEN__';
+              var btn = document.getElementById('gwbtn');
+              var hint = document.getElementById('gwhint');
+              if (!publicUrl || publicUrl === '__GATEWAY_PUBLIC_URL__') {
+                btn.style.display = 'none';
+                hint.innerHTML = 'Configure <code>gateway_public_url</code> in the add-on options to enable the external Gateway UI link.';
+                return;
+              }
+              if (!token || token === '__GATEWAY_TOKEN__') {
+                // Token not known yet (likely before onboarding). Don't show a broken link.
+                btn.style.display = 'none';
+                hint.innerHTML = 'Gateway token not found yet. Open the terminal below and run <code>openclaw onboard</code> (or <code>openclaw configure</code>) to finish setup.';
+                return;
+              }
+            })();
+          </script>
           <div class="term">
             <iframe src="./terminal/" title="Terminal"></iframe>
           </div>

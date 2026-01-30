@@ -1,5 +1,5 @@
 name: OpenClaw Assistant
-version: "0.5.3"
+version: "0.5.4"
 slug: openclaw_assistant
 description: Run OpenClaw Assistant (OpenClaw-compatible) as a Home Assistant add-on.
 url: https://github.com/techartdev/OpenClawHomeAssistant
@@ -21,31 +21,17 @@ panel_icon: mdi:robot
 map:
   - addon_config:rw
 options:
-  telegram_bot_token: ""
   timezone: "Europe/Sofia"
-  # Optional: lock DMs to specific Telegram user ids (comma-separated).
-  # If set, add-on will use dmPolicy=allowlist and allowFrom=<ids>.
-  telegram_allow_from: ""
 
-  # Model selection (string like "openai-codex/gpt-5.2" or "ollama/gpt-oss:20b")
-  model_primary: "openai-codex/gpt-5.2"
-
-  # Gateway UI exposure (LAN)
-  # - bind: loopback (default) or lan
-  # - port: default 18789
-  # - token: set to a fixed token so Control UI can connect; required if bind=lan
-  gateway_bind: "loopback"
-  gateway_port: 18789
-  gateway_token: ""
+  # Enable web terminal inside Home Assistant (Ingress) via ttyd
+  enable_terminal: true
 
   # Public base URL for opening the Gateway Web UI in a new tab (not embedded).
   # Recommended: NO trailing slash.
   # Example: "https://example.duckdns.org:12345" or "http://192.168.1.10:18789"
   gateway_public_url: ""
 
-  # Run `openclaw doctor --fix` on startup (useful after upgrades; slows restarts)
-  run_doctor_on_start: false
-
+  # Optional: Home Assistant long-lived token (for local HA API scripts/tools)
   homeassistant_token: ""
 
   # Optional: Router SSH defaults (leave empty if you don't need router automation)
@@ -55,35 +41,21 @@ options:
   router_ssh_user: ""
   router_ssh_key_path: "/data/keys/router_ssh"
 
-  # Brave Search API key (optional; enables Brave-backed web search tool)
-  brave_api_key: ""
-
-  # Enable web terminal inside Home Assistant (Ingress) via ttyd
-  enable_terminal: false
-
   # Cleanup stale session lock files left after crashes/restarts
   clean_session_locks_on_start: true
   clean_session_locks_on_exit: true
 
 
 schema:
-  telegram_bot_token: str
   timezone: str
-  telegram_allow_from: str?
-  model_primary: str
-  gateway_bind: list(loopback|lan)
-  gateway_port: int
-  gateway_token: str?
+  enable_terminal: bool?
   gateway_public_url: str?
-  run_doctor_on_start: bool
   homeassistant_token: str?
 
   router_ssh_host: str
   router_ssh_user: str
   router_ssh_key_path: str
 
-  brave_api_key: str?
-  enable_terminal: bool?
   clean_session_locks_on_start: bool?
   clean_session_locks_on_exit: bool?
 

@@ -10,20 +10,13 @@ if [ ! -f "$OPTIONS_FILE" ]; then
 fi
 
 # ------------------------------------------------------------------------------
-# Read add-on options (ALL optional; onboarding can fill the rest)
+# Read add-on options (only add-on-specific knobs; OpenClaw is configured via onboarding)
 # ------------------------------------------------------------------------------
 
-BOT_TOKEN=$(jq -r '.telegram_bot_token // empty' "$OPTIONS_FILE")
 TZNAME=$(jq -r '.timezone // "Europe/Sofia"' "$OPTIONS_FILE")
-ALLOW_FROM_RAW=$(jq -r '.telegram_allow_from // empty' "$OPTIONS_FILE")
-MODEL_PRIMARY=$(jq -r '.model_primary // empty' "$OPTIONS_FILE")
-GW_BIND=$(jq -r '.gateway_bind // empty' "$OPTIONS_FILE")
-GW_PORT=$(jq -r '.gateway_port // empty' "$OPTIONS_FILE")
-GW_TOKEN=$(jq -r '.gateway_token // empty' "$OPTIONS_FILE")
 GW_PUBLIC_URL=$(jq -r '.gateway_public_url // empty' "$OPTIONS_FILE")
 HA_TOKEN=$(jq -r '.homeassistant_token // empty' "$OPTIONS_FILE")
-BRAVE_KEY=$(jq -r '.brave_api_key // empty' "$OPTIONS_FILE")
-ENABLE_TERMINAL=$(jq -r '.enable_terminal // false' "$OPTIONS_FILE")
+ENABLE_TERMINAL=$(jq -r '.enable_terminal // true' "$OPTIONS_FILE")
 
 # Generic router SSH settings
 ROUTER_HOST=$(jq -r '.router_ssh_host // empty' "$OPTIONS_FILE")
@@ -108,109 +101,11 @@ if [ -n "$HA_TOKEN" ]; then
   printf '%s' "$HA_TOKEN" > /config/secrets/homeassistant.token
 fi
 
-if [ -n "$BRAVE_KEY" ]; then
-  export BRAVE_API_KEY="$BRAVE_KEY"
-  umask 077
-  printf '%s' "$BRAVE_KEY" > /config/secrets/brave_api_key
-fi
 
 # ------------------------------------------------------------------------------
-# Non-invasive OpenClaw config management
-# - If config is missing: create it.
-# - If config exists: ONLY patch the fields whose add-on options are set.
-# - If config is not parseable as strict JSON (e.g. JSON5): do NOT touch it.
-#   (This keeps onboarding-managed config intact.)
+# OpenClaw config is managed by OpenClaw itself (onboarding / configure).
+# This add-on intentionally does NOT create/patch /config/.openclaw/openclaw.json.
 # ------------------------------------------------------------------------------
-
-OPENCLAW_CONFIG_PATH="/config/.openclaw/openclaw.json"
-export OPENCLAW_CONFIG_PATH
-
-python3 - <<'PY'
-import json
-import os
-from pathlib import Path
-
-cfg_path = Path(os.environ.get('OPENCLAW_CONFIG_PATH', '/config/.openclaw/openclaw.json'))
-
-def set_path(d, keys, value):
-    cur = d
-    for k in keys[:-1]:
-        if k not in cur or not isinstance(cur[k], dict):
-            cur[k] = {}
-        cur = cur[k]
-    cur[keys[-1]] = value
-
-# Load existing config if possible
-cfg = {}
-if cfg_path.exists():
-    try:
-        cfg = json.loads(cfg_path.read_text(encoding='utf-8'))
-    except Exception as e:
-        print(f"INFO: {cfg_path} exists but is not strict JSON; leaving it untouched ({e}).")
-        raise SystemExit(0)
-
-# Patch only if env var is set (non-empty)
-
-def env(name):
-    v = os.environ.get(name, '')
-    return v if v != '' else None
-
-# Ensure gateway.mode is set so `openclaw gateway run` can start.
-# Safe default for the add-on.
-set_path(cfg, ['gateway', 'mode'], 'local')
-
-# gateway bind/port/token
-bind_ = env('GW_BIND')
-if bind_:
-    set_path(cfg, ['gateway', 'bind'], bind_)
-
-port_ = env('GW_PORT')
-if port_:
-    try:
-        set_path(cfg, ['gateway', 'port'], int(port_))
-    except Exception:
-        pass
-
-token_ = env('GW_TOKEN')
-if token_:
-    set_path(cfg, ['gateway', 'auth', 'mode'], 'token')
-    set_path(cfg, ['gateway', 'auth', 'token'], token_)
-
-# Agent defaults: workspace + primary model
-# We always ensure workspace points to the add-on workspace (safe and expected).
-set_path(cfg, ['agents', 'defaults', 'workspace'], '/config/clawd')
-
-model_primary = env('MODEL_PRIMARY')
-if model_primary:
-    set_path(cfg, ['agents', 'defaults', 'model', 'primary'], model_primary)
-    # Ensure models entry exists (minimal)
-    models = cfg.get('agents', {}).get('defaults', {}).get('models', {})
-    if not isinstance(models, dict):
-        models = {}
-    models.setdefault(model_primary, {})
-    set_path(cfg, ['agents', 'defaults', 'models'], models)
-
-# Telegram channel only if token provided in options
-bot_token = env('BOT_TOKEN')
-if bot_token:
-    set_path(cfg, ['channels', 'telegram', 'enabled'], True)
-    set_path(cfg, ['channels', 'telegram', 'botToken'], bot_token)
-
-    allow_from_raw = env('ALLOW_FROM_RAW')
-    if allow_from_raw:
-        ids = [x.strip() for x in allow_from_raw.split(',') if x.strip()]
-        if ids:
-            set_path(cfg, ['channels', 'telegram', 'dmPolicy'], 'allowlist')
-            set_path(cfg, ['channels', 'telegram', 'allowFrom'], ids)
-    else:
-        # If not set, do NOT override dmPolicy/allowFrom; let onboarding decide.
-        pass
-
-# Write (pretty JSON; JSON is valid JSON5 too)
-cfg_path.parent.mkdir(parents=True, exist_ok=True)
-cfg_path.write_text(json.dumps(cfg, indent=2, sort_keys=True) + "\n", encoding='utf-8')
-print(f"INFO: OpenClaw config written/patched at {cfg_path}")
-PY
 
 # Convenience info for later (router SSH access path & HA token file)
 cat > /config/CONNECTION_NOTES.txt <<EOF
@@ -221,15 +116,6 @@ Router SSH (generic):
   key=${ROUTER_KEY}
 EOF
 
-RUN_DOCTOR=$(jq -r '.run_doctor_on_start // false' "$OPTIONS_FILE")
-
-# Run doctor ONLY if explicitly enabled; otherwise don't touch user-managed config/state.
-if [ "$RUN_DOCTOR" = "true" ]; then
-  echo "Running assistant doctor (auto-fix) ..."
-  (timeout 60s openclaw doctor --fix --yes) || true
-else
-  echo "Skipping doctor on startup (run_doctor_on_start=false)"
-fi
 
 # ------------------------------------------------------------------------------
 # Graceful shutdown handling (PID 1 trap) to reduce stale locks
@@ -285,16 +171,27 @@ fi
 # Start ingress reverse proxy (nginx). This provides the add-on UI inside HA.
 # Token is injected server-side; never put it in the browser URL.
 
-# Render nginx config from template with the gateway token.
-# NOTE: This intentionally exposes the token in the browser URL via a redirect.
-# This matches OpenClaw Control UI's current expectations.
-GW_TOKEN="$GW_TOKEN" GW_PUBLIC_URL="$GW_PUBLIC_URL" python3 - <<'PY'
+# Render nginx config from template.
+# The gateway token is NOT managed by the add-on; OpenClaw will generate/store it.
+# If we don't know it yet, the landing page will show a hint instead of a broken link.
+GW_PUBLIC_URL="$GW_PUBLIC_URL" python3 - <<'PY'
 import os
 from pathlib import Path
 
 tpl = Path('/etc/nginx/nginx.conf.tpl').read_text()
-token = os.environ.get('GW_TOKEN','')
 public_url = os.environ.get('GW_PUBLIC_URL','')
+
+# Best-effort: read token from OpenClaw config if it exists and is strict JSON.
+# (If it's JSON5 or missing, we leave token empty and the landing page will guide the user.)
+token = ''
+try:
+    cfg_path = Path('/config/.openclaw/openclaw.json')
+    if cfg_path.exists():
+        import json
+        cfg = json.loads(cfg_path.read_text(encoding='utf-8'))
+        token = (((cfg.get('gateway') or {}).get('auth') or {}).get('token')) or ''
+except Exception:
+    token = ''
 
 conf = tpl.replace('__GATEWAY_TOKEN__', token)
 conf = conf.replace('__GATEWAY_PUBLIC_URL__', public_url)
