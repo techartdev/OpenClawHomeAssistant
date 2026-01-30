@@ -37,8 +37,16 @@ http {
     # out of ingress (to the HA host root). So we use a *relative* redirect.
 
     # Only redirect the root document to add token in the browser URL.
+    # NOTE: Home Assistant Ingress can expose the add-on at a path like:
+    #   /hassio/ingress/<slug>
+    # which may not end in a slash. Some clients compute relative URLs (including WS)
+    # incorrectly if the URL doesn't end in '/'. HA often provides the original ingress
+    # path via X-Ingress-Path; if present, redirect to that path with a trailing slash.
     location = / {
       if ($arg_token = "") {
+        if ($http_x_ingress_path != "") {
+          return 302 $http_x_ingress_path/?token=__GATEWAY_TOKEN__;
+        }
         return 302 ?token=__GATEWAY_TOKEN__;
       }
 
