@@ -22,8 +22,16 @@ http {
     listen 8099;
 
     # Web terminal (ttyd)
-    location /terminal/ {
-      proxy_pass http://127.0.0.1:7681/;
+    # ttyd base-path is configured as /terminal (no trailing slash).
+    # Some clients will hit /terminal first, so redirect to /terminal/.
+    location = /terminal {
+      return 302 /terminal/;
+    }
+
+    # Proxy everything under /terminal/ (including websocket /terminal/ws)
+    location ^~ /terminal/ {
+      # IMPORTANT: no trailing slash in proxy_pass so nginx preserves the full URI
+      proxy_pass http://127.0.0.1:7681;
       proxy_http_version 1.1;
       proxy_set_header Upgrade $http_upgrade;
       proxy_set_header Connection "upgrade";
@@ -31,6 +39,8 @@ http {
       proxy_set_header X-Real-IP $remote_addr;
       proxy_set_header X-Forwarded-For $remote_addr;
       proxy_set_header X-Forwarded-Proto $scheme;
+      proxy_read_timeout 3600s;
+      proxy_send_timeout 3600s;
     }
 
     # Landing page (shown inside HA Ingress)
