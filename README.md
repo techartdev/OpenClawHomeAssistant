@@ -36,13 +36,8 @@ If you provide `brave_api_key`, the add-on exports `BRAVE_API_KEY` for the assis
 ### Optional: Home Assistant token
 If you provide `homeassistant_token`, it is written to `/config/secrets/homeassistant.token` inside the container for local scripts/tools.
 
-### Optional: MikroTik SSH
-If you want MikroTik automation, provide:
-- `mikrotik_host`
-- `mikrotik_ssh_user`
-- `mikrotik_ssh_key_path` (default: `/data/keys/mikrotik`)
-
-Place the SSH key file under the add-on config folder (e.g., with File editor), so it appears in-container at `/data/keys/...`.
+### Optional: Router SSH (generic)
+If you want the assistant to automate local network/router configuration over SSH, see **DOCS.md** (Router SSH section).
 
 ## UI
 - The main add-on page loads the Gateway UI via **Ingress**.
