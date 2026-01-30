@@ -33,73 +33,54 @@ http {
       proxy_set_header X-Forwarded-Proto $scheme;
     }
 
-    # Gateway UI
-    # IMPORTANT: We must not redirect to an absolute "/..." path because Home Assistant Ingress
-    # strips the ingress prefix before forwarding to the add-on. An absolute Location would jump
-    # out of ingress (to the HA host root). So we use a *relative* redirect.
-
-    # Only redirect the root document to add token in the browser URL.
+    # Landing page (shown inside HA Ingress)
+    # - Shows the web terminal (if enabled)
+    # - Provides a button to open the Gateway Web UI in a separate tab (not embedded)
     location = / {
-      if ($arg_token = "") {
-        # Force a trailing slash via a relative redirect.
-        return 302 ./?token=__GATEWAY_TOKEN__;
-      }
+      default_type text/html;
 
-      # Proxy the gateway UI.
-      proxy_pass http://127.0.0.1:18789;
-      proxy_http_version 1.1;
-      proxy_set_header Upgrade $http_upgrade;
-      proxy_set_header Connection "upgrade";
-      proxy_set_header Host $host;
-      proxy_set_header X-Real-IP $remote_addr;
-      proxy_set_header X-Forwarded-For $remote_addr;
-      proxy_set_header X-Forwarded-Proto $scheme;
+      # NOTE: __GATEWAY_PUBLIC_URL__ is configured via add-on option gateway_public_url.
+      # We keep it flexible because the right URL depends on how the user exposes HA/gateway
+      # (Nabu Casa, DuckDNS, LAN, etc.).
 
-      # Debug: expose the ingress path nginx sees (from HA) to the browser.
-      # Remove once confirmed.
-      add_header X-Debug-Ingress-Path $http_x_ingress_path always;
-
-      # Inject the correct WS URL when running behind HA Ingress.
-      # HA provides a per-session ingress proxy path in X-Ingress-Path (usually /api/hassio_ingress/<token>).
-      # The UI loaded at /hassio/ingress/<slug> cannot be used as a WS endpoint on some setups,
-      # but /api/hassio_ingress/<token> *can* proxy websocket upgrades.
-      #
-      # We inject a small script to override the UI's saved websocket URL to:
-      #   wss://<host><x-ingress-path>/
-      # so the browser connects same-origin + through HA's ingress proxy.
-      proxy_set_header Accept-Encoding "";
-      sub_filter_types text/html;
-      sub_filter_once on;
-      sub_filter '</head>' '<script>(function(){try{var p="__INGRESS_PATH__"; if(p && p!=="__INGRESS_PATH__"){ var ws=(location.protocol==="https:"?"wss://":"ws://")+location.host+p+"/"; var k="clawdbot.control.settings.v1"; try{var s=localStorage.getItem(k); var o=s?JSON.parse(s):{}; if(o.gatewayUrl!==ws){ o.gatewayUrl=ws; localStorage.setItem(k, JSON.stringify(o)); location.reload(); } }catch(e){} } }catch(e){} })();</script></head>';
-      sub_filter '__INGRESS_PATH__' "$http_x_ingress_path";
+      return 200 '<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+      <title>Moltbot Assistant</title>
+      <style>
+        body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Cantarell,Noto Sans,sans-serif;margin:0;padding:16px;background:#0b0f14;color:#e6edf3}
+        a,button{font:inherit}
+        .card{max-width:1100px;margin:0 auto;background:#111827;border:1px solid #1f2937;border-radius:12px;padding:16px}
+        .row{display:flex;gap:12px;flex-wrap:wrap;align-items:center}
+        .btn{background:#2563eb;color:white;border:0;border-radius:10px;padding:10px 14px;cursor:pointer;text-decoration:none;display:inline-block}
+        .btn.secondary{background:#334155}
+        .muted{color:#9ca3af;font-size:14px}
+        .term{margin-top:14px;height:70vh;min-height:420px;border:1px solid #1f2937;border-radius:10px;overflow:hidden}
+        iframe{width:100%;height:100%;border:0;background:black}
+        code{background:#0b1220;padding:2px 6px;border-radius:6px}
+      </style>
+      </head><body>
+        <div class="card">
+          <h2 style="margin:0 0 8px 0">Moltbot Assistant</h2>
+          <div class="row" style="margin-bottom:6px">
+            <a class="btn" href="__GATEWAY_PUBLIC_URL__/?token=__GATEWAY_TOKEN__" target="_blank" rel="noopener noreferrer">Open Gateway Web UI</a>
+            <a class="btn secondary" href="/terminal/" target="_self">Open Terminal (full page)</a>
+          </div>
+          <div class="muted">
+            Tip: The gateway UI is intentionally opened outside of Ingress to avoid websocket/proxy issues.
+            Configure <code>gateway_public_url</code> in the add-on options.
+          </div>
+          <div class="term">
+            <iframe src="/terminal/" title="Terminal"></iframe>
+          </div>
+        </div>
+      </body></html>';
     }
 
-    # WebSocket endpoint compatibility:
-    # Some clients/UIs assume a dedicated /ws path. The gateway websocket endpoint
-    # itself is at /, so we map /ws -> / when proxying.
-    location /ws {
-      proxy_pass http://127.0.0.1:18789/;
-      proxy_http_version 1.1;
-      proxy_set_header Upgrade $http_upgrade;
-      proxy_set_header Connection "upgrade";
-      proxy_set_header Host $host;
-      proxy_set_header X-Real-IP $remote_addr;
-      proxy_set_header X-Forwarded-For $remote_addr;
-      proxy_set_header X-Forwarded-Proto $scheme;
-      proxy_read_timeout 3600s;
-      proxy_send_timeout 3600s;
-    }
+    # (Optional) Gateway UI via ingress has been intentionally removed.
+    # See landing page link that opens the gateway in a separate tab.
 
-    # Everything else (assets, api, etc.) just proxy through.
+    # Everything else: 404
     location / {
-      proxy_pass http://127.0.0.1:18789;
-      proxy_http_version 1.1;
-      proxy_set_header Upgrade $http_upgrade;
-      proxy_set_header Connection "upgrade";
-      proxy_set_header Host $host;
-      proxy_set_header X-Real-IP $remote_addr;
-      proxy_set_header X-Forwarded-For $remote_addr;
-      proxy_set_header X-Forwarded-Proto $scheme;
+      return 404;
     }
   }
 }

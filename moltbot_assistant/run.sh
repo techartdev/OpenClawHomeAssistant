@@ -16,6 +16,7 @@ MODEL_PRIMARY=$(jq -r '.model_primary // "openai-codex/gpt-5.2"' "$OPTIONS_FILE"
 GW_BIND=$(jq -r '.gateway_bind // "loopback"' "$OPTIONS_FILE")
 GW_PORT=$(jq -r '.gateway_port // 18789' "$OPTIONS_FILE")
 GW_TOKEN=$(jq -r '.gateway_token // empty' "$OPTIONS_FILE")
+GW_PUBLIC_URL=$(jq -r '.gateway_public_url // empty' "$OPTIONS_FILE")
 HA_TOKEN=$(jq -r '.homeassistant_token // empty' "$OPTIONS_FILE")
 BRAVE_KEY=$(jq -r '.brave_api_key // empty' "$OPTIONS_FILE")
 ENABLE_TERMINAL=$(jq -r '.enable_terminal // false' "$OPTIONS_FILE")
@@ -279,16 +280,17 @@ fi
 # Render nginx config from template with the gateway token.
 # NOTE: This intentionally exposes the token in the browser URL via a redirect.
 # This matches Clawdbot Control UI's current expectations.
-GW_TOKEN="$GW_TOKEN" python3 - <<'PY'
+GW_TOKEN="$GW_TOKEN" GW_PUBLIC_URL="$GW_PUBLIC_URL" python3 - <<'PY'
 import os
 from pathlib import Path
 
 tpl = Path('/etc/nginx/nginx.conf.tpl').read_text()
 token = os.environ.get('GW_TOKEN','')
-if not token:
-    print('WARN: gateway_token is empty; ingress UI will redirect with an empty token and Control UI will not authenticate.')
+public_url = os.environ.get('GW_PUBLIC_URL','')
 
 conf = tpl.replace('__GATEWAY_TOKEN__', token)
+conf = conf.replace('__GATEWAY_PUBLIC_URL__', public_url)
+
 Path('/etc/nginx/nginx.conf').write_text(conf)
 PY
 

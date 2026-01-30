@@ -1,5 +1,5 @@
 name: Moltbot Assistant
-version: "0.4.2"
+version: "0.4.3"
 slug: moltbot_assistant
 description: Run Moltbot Assistant (Clawdbot-compatible) as a Home Assistant add-on.
 url: https://github.com/techartdev/ClawdHAAddOn
@@ -38,6 +38,10 @@ options:
   gateway_port: 18789
   gateway_token: ""
 
+  # Public base URL for opening the Gateway Web UI in a new tab (not embedded).
+  # Example: "https://vanevihomeha.duckdns.org:38123" or "http://192.168.1.10:18789"
+  gateway_public_url: ""
+
   # Run `clawdbot doctor --fix` on startup (useful after upgrades; slows restarts)
   run_doctor_on_start: false
 
@@ -65,6 +69,7 @@ schema:
   gateway_bind: list(loopback|lan)
   gateway_port: int
   gateway_token: str?
+  gateway_public_url: str?
   run_doctor_on_start: bool
   homeassistant_token: str?
   mikrotik_host: str
