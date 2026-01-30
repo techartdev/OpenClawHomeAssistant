@@ -16,6 +16,15 @@ http {
   sendfile        on;
   keepalive_timeout  65;
 
+  # Home Assistant Ingress may pass the original ingress path in X-Ingress-Path.
+  # If present, use it to build a redirect that keeps the browser under ingress
+  # and ensures a trailing slash before the query string.
+  map $http_x_ingress_path $token_redirect {
+    default "?token=__GATEWAY_TOKEN__";
+    ""      "?token=__GATEWAY_TOKEN__";
+    ~.+     "$http_x_ingress_path/?token=__GATEWAY_TOKEN__";
+  }
+
   server {
     listen 8099;
 
@@ -44,10 +53,7 @@ http {
     # path via X-Ingress-Path; if present, redirect to that path with a trailing slash.
     location = / {
       if ($arg_token = "") {
-        if ($http_x_ingress_path != "") {
-          return 302 $http_x_ingress_path/?token=__GATEWAY_TOKEN__;
-        }
-        return 302 ?token=__GATEWAY_TOKEN__;
+        return 302 $token_redirect;
       }
 
       proxy_pass http://127.0.0.1:18789;
