@@ -123,13 +123,14 @@ fi
 # ------------------------------------------------------------------------------
 
 OPENCLAW_CONFIG_PATH="/config/.openclaw/openclaw.json"
+export OPENCLAW_CONFIG_PATH
 
 python3 - <<'PY'
 import json
 import os
 from pathlib import Path
 
-cfg_path = Path(os.environ['OPENCLAW_CONFIG_PATH'])
+cfg_path = Path(os.environ.get('OPENCLAW_CONFIG_PATH', '/config/.openclaw/openclaw.json'))
 
 def set_path(d, keys, value):
     cur = d
