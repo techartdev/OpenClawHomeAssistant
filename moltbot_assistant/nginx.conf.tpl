@@ -55,6 +55,10 @@ http {
       proxy_set_header X-Forwarded-For $remote_addr;
       proxy_set_header X-Forwarded-Proto $scheme;
 
+      # Debug: expose the ingress path nginx sees (from HA) to the browser.
+      # Remove once confirmed.
+      add_header X-Debug-Ingress-Path $http_x_ingress_path always;
+
       # Inject the correct WS URL when running behind HA Ingress.
       # HA provides a per-session ingress proxy path in X-Ingress-Path (usually /api/hassio_ingress/<token>).
       # The UI loaded at /hassio/ingress/<slug> cannot be used as a WS endpoint on some setups,
@@ -66,7 +70,7 @@ http {
       proxy_set_header Accept-Encoding "";
       sub_filter_types text/html;
       sub_filter_once on;
-      sub_filter '</head>' '<script>(function(){try{var p="__INGRESS_PATH__"; if(p && p!=="__INGRESS_PATH__"){ var ws=(location.protocol==="https:"?"wss://":"ws://")+location.host+p+"/"; try{var k="clawdbot.control.settings.v1"; var s=localStorage.getItem(k); var o=s?JSON.parse(s):{}; o.url=ws; localStorage.setItem(k, JSON.stringify(o));}catch(e){} } }catch(e){} })();</script></head>';
+      sub_filter '</head>' '<script>(function(){try{var p="__INGRESS_PATH__"; if(p && p!=="__INGRESS_PATH__"){ var ws=(location.protocol==="https:"?"wss://":"ws://")+location.host+p+"/"; var k="clawdbot.control.settings.v1"; try{var s=localStorage.getItem(k); var o=s?JSON.parse(s):{}; if(o.gatewayUrl!==ws){ o.gatewayUrl=ws; localStorage.setItem(k, JSON.stringify(o)); location.reload(); } }catch(e){} } }catch(e){} })();</script></head>';
       sub_filter '__INGRESS_PATH__' "$http_x_ingress_path";
     }
 
