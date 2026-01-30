@@ -72,14 +72,14 @@ http {
           <h2 style="margin:0 0 8px 0">Moltbot Assistant</h2>
           <div class="row" style="margin-bottom:6px">
             <a class="btn" href="__GATEWAY_PUBLIC_URL__/?token=__GATEWAY_TOKEN__" target="_blank" rel="noopener noreferrer">Open Gateway Web UI</a>
-            <a class="btn secondary" href="/terminal/" target="_self">Open Terminal (full page)</a>
+            <a class="btn secondary" href="./terminal/" target="_self">Open Terminal (full page)</a>
           </div>
           <div class="muted">
             Tip: The gateway UI is intentionally opened outside of Ingress to avoid websocket/proxy issues.
             Configure <code>gateway_public_url</code> in the add-on options.
           </div>
           <div class="term">
-            <iframe src="/terminal/" title="Terminal"></iframe>
+            <iframe src="./terminal/" title="Terminal"></iframe>
           </div>
         </div>
       </body></html>';
