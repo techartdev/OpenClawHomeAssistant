@@ -179,6 +179,7 @@ import os
 from pathlib import Path
 
 tpl = Path('/etc/nginx/nginx.conf.tpl').read_text()
+landing_tpl = Path('/etc/nginx/landing.html.tpl').read_text()
 public_url = os.environ.get('GW_PUBLIC_URL','')
 
 # Best-effort: read token from OpenClaw config if it exists and is strict JSON.
@@ -193,11 +194,17 @@ try:
 except Exception:
     token = ''
 
-conf = tpl.replace('__GATEWAY_TOKEN__', token)
-conf = conf.replace('__GATEWAY_PUBLIC_URL__', public_url)
-conf = conf.replace('__GW_PUBLIC_URL_PATH__', '' if public_url.endswith('/') else '/')
+gw_path = '' if public_url.endswith('/') else '/'
 
+conf = tpl
 Path('/etc/nginx/nginx.conf').write_text(conf)
+
+landing = landing_tpl.replace('__GATEWAY_TOKEN__', token)
+landing = landing.replace('__GATEWAY_PUBLIC_URL__', public_url)
+landing = landing.replace('__GW_PUBLIC_URL_PATH__', gw_path)
+
+Path('/etc/nginx/html').mkdir(parents=True, exist_ok=True)
+Path('/etc/nginx/html/index.html').write_text(landing)
 PY
 
 echo "Starting ingress proxy (nginx) on :8099 ..."

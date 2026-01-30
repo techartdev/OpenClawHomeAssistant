@@ -48,6 +48,7 @@ RUN npm config set fund false && npm config set audit false \
 
 COPY run.sh /run.sh
 COPY nginx.conf.tpl /etc/nginx/nginx.conf.tpl
+COPY landing.html.tpl /etc/nginx/landing.html.tpl
 RUN chmod +x /run.sh \
  && mkdir -p /run/nginx
 
