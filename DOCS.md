@@ -57,9 +57,9 @@ To open the gateway UI in a separate tab reliably:
 - Set `gateway_public_url` to a base URL that the browser can reach.
 
 Examples:
-- LAN only: `http://192.168.88.31:18789`
-- DuckDNS with port-forward: `https://vanevihomeha.duckdns.org:38123`
-  - (in that case your router/NAT must forward 38123 → HA host → gateway port)
+- LAN only: `http://homeassistant.local:18789` (or `http://192.168.1.10:18789`)
+- Public domain with port-forward: `https://example.duckdns.org:12345`
+  - (in that case your router/NAT must forward `12345` → HA host → gateway port)
 
 The Ingress landing page button will open:
 
