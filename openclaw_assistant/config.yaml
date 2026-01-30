@@ -55,10 +55,6 @@ options:
   router_ssh_user: ""
   router_ssh_key_path: "/data/keys/router_ssh"
 
-  # Backward compatible (deprecated): older config names
-  mikrotik_host: ""
-  mikrotik_ssh_user: ""
-  mikrotik_ssh_key_path: "/data/keys/mikrotik"
   # Brave Search API key (optional; enables Brave-backed web search tool)
   brave_api_key: ""
 
@@ -85,11 +81,6 @@ schema:
   router_ssh_host: str
   router_ssh_user: str
   router_ssh_key_path: str
-
-  # Backward compatible (deprecated)
-  mikrotik_host: str?
-  mikrotik_ssh_user: str?
-  mikrotik_ssh_key_path: str?
 
   brave_api_key: str?
   enable_terminal: bool?
