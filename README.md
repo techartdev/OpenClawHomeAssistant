@@ -2,7 +2,7 @@
 
 This repository contains a Home Assistant add-on that runs a **Moltbot Assistant** instance on **HAOS**.
 
-Upstream note: Moltbot is the new name for the Clawdbot project. The add-on may still install/use the `clawdbot` npm package/CLI for compatibility until the upstream transition fully settles.
+Upstream note: the project has gone through renames. This add-on currently installs **OpenClaw** and keeps a `clawdbot` shim for backwards compatibility.
 
 ## What you get
 - Always-on personal assistant running as a Supervisor-managed container

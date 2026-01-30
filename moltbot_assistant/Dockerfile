@@ -42,9 +42,12 @@ RUN set -eu; \
     libstdc++ libgcc libatomic; \
   /usr/local/bin/node -v; /usr/local/bin/npm -v
 
-# Install clawdbot globally
+# Install OpenClaw globally (successor of Clawdbot)
+# We also provide a lightweight `clawdbot` shim for backwards compatibility.
 RUN npm config set fund false && npm config set audit false \
- && npm install -g clawdbot
+ && npm install -g openclaw@2026.1.29 \
+ && printf '%s\n' '#!/usr/bin/env sh' 'exec openclaw "$@"' > /usr/local/bin/clawdbot \
+ && chmod +x /usr/local/bin/clawdbot
 
 COPY run.sh /run.sh
 COPY nginx.conf.tpl /etc/nginx/nginx.conf.tpl

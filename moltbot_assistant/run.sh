@@ -149,7 +149,9 @@ if [ -z "$GW_TOKEN" ]; then
   GW_AUTH_BLOCK="auth: { mode: \"token\" }"
 fi
 
-# Write Clawdbot gateway config (JSON5) into the expected location.
+# Write gateway config (JSON5).
+# We keep legacy Clawdbot paths for compatibility, and also write OpenClaw paths.
+mkdir -p /config/.clawdbot /config/.openclaw
 cat > /config/.clawdbot/clawdbot.json <<EOF
 {
   discovery: { wideArea: { enabled: false } },
@@ -183,6 +185,9 @@ cat > /config/.clawdbot/clawdbot.json <<EOF
   }
 }
 EOF
+
+# Also write OpenClaw config path(s) (best-effort; OpenClaw can auto-migrate legacy paths).
+cp -f /config/.clawdbot/clawdbot.json /config/.openclaw/openclaw.json 2>/dev/null || true
 
 echo "Model primary=${MODEL_PRIMARY}"
 echo "Gateway bind=${GW_BIND} port=${GW_PORT} token=${GW_TOKEN:+(set)}${GW_TOKEN:-(auto)}"
@@ -229,7 +234,7 @@ RUN_DOCTOR=$(jq -r '.run_doctor_on_start // false' "$OPTIONS_FILE")
 
 if [ "$RUN_DOCTOR" = "true" ]; then
   echo "Running assistant doctor (auto-fix) ..."
-  (timeout 60s clawdbot doctor --fix --yes) || true
+  (timeout 60s "${CLI_BIN:-clawdbot}" doctor --fix --yes) || true
 else
   echo "Skipping clawdbot doctor on startup (run_doctor_on_start=false)"
 fi
@@ -267,8 +272,18 @@ trap shutdown INT TERM
 NGINX_PID=""
 TTYD_PID=""
 
-echo "Starting Moltbot Assistant gateway (clawdbot-compatible)..."
-clawdbot gateway run &
+CLI_BIN=""
+if command -v openclaw >/dev/null 2>&1; then
+  CLI_BIN="openclaw"
+elif command -v clawdbot >/dev/null 2>&1; then
+  CLI_BIN="clawdbot"
+else
+  echo "ERROR: Neither openclaw nor clawdbot is installed."
+  exit 1
+fi
+
+echo "Starting Moltbot Assistant gateway (${CLI_BIN}-compatible)..."
+"${CLI_BIN}" gateway run &
 GW_PID=$!
 
 # Start web terminal (optional)

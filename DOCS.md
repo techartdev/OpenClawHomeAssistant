@@ -2,7 +2,7 @@
 
 This add-on runs a Moltbot Assistant instance on Home Assistant OS (Supervisor add-on).
 
-> Note: Moltbot is the new name for the upstream Clawdbot project. Internally, this add-on may still use the `clawdbot` CLI/package as a compatibility layer.
+> Note: The upstream project has gone through renames. This add-on currently installs **OpenClaw** (the successor of Clawdbot) and also provides a `clawdbot` shim for backwards compatibility.
 
 ## What this add-on provides
 
