@@ -49,9 +49,9 @@ export TZ="$TZNAME"
 set +x
 
 # HA add-ons mount persistent storage at /config (maps to /addon_configs/<slug> on the host).
-# Use /config as HOME so Clawdbot finds its auth store and config there.
+# Use /config as HOME so OpenClaw finds its auth store and config there.
 export HOME=/config
-mkdir -p /config/.clawdbot /config/clawd /config/keys /config/secrets
+mkdir -p /config/.openclaw /config/clawd /config/keys /config/secrets
 
 # Back-compat: some docs/scripts assume /data; point it at /config.
 if [ ! -e /data ]; then
@@ -59,12 +59,12 @@ if [ ! -e /data ]; then
 fi
 
 # Ensure these exist so cleanup doesn't fail
-mkdir -p /config/.clawdbot/agents/main/sessions || true
+mkdir -p /config/.openclaw/agents/main/sessions || true
 
 # ------------------------------------------------------------------------------
 # SINGLE-INSTANCE GUARD (prevents multiple gateway runs racing each other)
 # ------------------------------------------------------------------------------
-STARTUP_LOCK="/config/.clawdbot/gateway.start.lock"
+STARTUP_LOCK="/config/.openclaw/gateway.start.lock"
 exec 9>"$STARTUP_LOCK"
 if ! flock -n 9; then
   echo "ERROR: Another instance appears to be running (could not acquire $STARTUP_LOCK)."
@@ -78,11 +78,11 @@ fi
 
 # Returns 0 if a gateway process appears to be running, else 1
 gateway_running() {
-  pgrep -f "clawdbot.*gateway.*run" >/dev/null 2>&1
+  pgrep -f "openclaw.*gateway.*run" >/dev/null 2>&1
 }
 
 cleanup_session_locks() {
-  local sessions_dir="/config/.clawdbot/agents/main/sessions"
+  local sessions_dir="/config/.openclaw/agents/main/sessions"
   local glob1="${sessions_dir}"/*.jsonl.lock
 
   shopt -s nullglob
@@ -121,7 +121,7 @@ if [ -n "$HA_TOKEN" ]; then
   printf '%s' "$HA_TOKEN" > /config/secrets/homeassistant.token
 fi
 
-# Brave Search API key (for clawdbot's web_search tool, which reads BRAVE_API_KEY)
+# Brave Search API key (for OpenClaw's web_search tool, which reads BRAVE_API_KEY)
 if [ -n "$BRAVE_KEY" ]; then
   export BRAVE_API_KEY="$BRAVE_KEY"
   umask 077
@@ -150,9 +150,8 @@ if [ -z "$GW_TOKEN" ]; then
 fi
 
 # Write gateway config (JSON5).
-# We keep legacy Clawdbot paths for compatibility, and also write OpenClaw paths.
-mkdir -p /config/.clawdbot /config/.openclaw
-cat > /config/.clawdbot/clawdbot.json <<EOF
+mkdir -p /config/.openclaw
+cat > /config/.openclaw/openclaw.json <<EOF
 {
   discovery: { wideArea: { enabled: false } },
 
@@ -186,8 +185,7 @@ cat > /config/.clawdbot/clawdbot.json <<EOF
 }
 EOF
 
-# Also write OpenClaw config path(s) (best-effort; OpenClaw can auto-migrate legacy paths).
-cp -f /config/.clawdbot/clawdbot.json /config/.openclaw/openclaw.json 2>/dev/null || true
+# OpenClaw reads its config from /config/.openclaw/openclaw.json
 
 echo "Model primary=${MODEL_PRIMARY}"
 echo "Gateway bind=${GW_BIND} port=${GW_PORT} token=${GW_TOKEN:+(set)}${GW_TOKEN:-(auto)}"
@@ -195,7 +193,7 @@ echo "Telegram dmPolicy=${DM_POLICY}${ALLOW_FROM_RAW:+ (allowFrom=${ALLOW_FROM_R
 echo "Telegram allowFrom JSON: ${ALLOW_FROM_JSON:-<none>}"
 
 # Auth store debug (redacted): never print tokens
-AUTH_STORE="/config/.clawdbot/agents/main/agent/auth-profiles.json"
+AUTH_STORE="/config/.openclaw/agents/main/agent/auth-profiles.json"
 if [ -f "$AUTH_STORE" ]; then
   echo "Auth store present at $AUTH_STORE"
   echo "Auth store summary (redacted):"
@@ -234,9 +232,9 @@ RUN_DOCTOR=$(jq -r '.run_doctor_on_start // false' "$OPTIONS_FILE")
 
 if [ "$RUN_DOCTOR" = "true" ]; then
   echo "Running assistant doctor (auto-fix) ..."
-  (timeout 60s "${CLI_BIN:-clawdbot}" doctor --fix --yes) || true
+  (timeout 60s "${CLI_BIN:-openclaw}" doctor --fix --yes) || true
 else
-  echo "Skipping clawdbot doctor on startup (run_doctor_on_start=false)"
+  echo "Skipping doctor on startup (run_doctor_on_start=false)"
 fi
 
 # ------------------------------------------------------------------------------
@@ -275,14 +273,12 @@ TTYD_PID=""
 CLI_BIN=""
 if command -v openclaw >/dev/null 2>&1; then
   CLI_BIN="openclaw"
-elif command -v clawdbot >/dev/null 2>&1; then
-  CLI_BIN="clawdbot"
 else
-  echo "ERROR: Neither openclaw nor clawdbot is installed."
+  echo "ERROR: openclaw is not installed."
   exit 1
 fi
 
-echo "Starting Moltbot Assistant gateway (${CLI_BIN}-compatible)..."
+echo "Starting OpenClaw Assistant gateway (${CLI_BIN}-compatible)..."
 "${CLI_BIN}" gateway run &
 GW_PID=$!
 
@@ -305,7 +301,7 @@ fi
 
 # Render nginx config from template with the gateway token.
 # NOTE: This intentionally exposes the token in the browser URL via a redirect.
-# This matches Clawdbot Control UI's current expectations.
+# This matches OpenClaw Control UI's current expectations.
 GW_TOKEN="$GW_TOKEN" GW_PUBLIC_URL="$GW_PUBLIC_URL" python3 - <<'PY'
 import os
 from pathlib import Path

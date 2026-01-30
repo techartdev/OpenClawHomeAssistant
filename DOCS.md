@@ -1,8 +1,8 @@
-# Moltbot Assistant (Home Assistant Add-on)
+# OpenClaw Assistant (Home Assistant Add-on)
 
-This add-on runs a Moltbot Assistant instance on Home Assistant OS (Supervisor add-on).
+This add-on runs a OpenClaw Assistant instance on Home Assistant OS (Supervisor add-on).
 
-> Note: The upstream project has gone through renames. This add-on currently installs **OpenClaw** (the successor of Clawdbot) and also provides a `clawdbot` shim for backwards compatibility.
+> Note: The upstream project has gone through renames. This add-on installs **OpenClaw**.
 
 ## What this add-on provides
 
@@ -22,7 +22,7 @@ we open it directly using a user-provided public/base URL.
 1. Home Assistant → Settings → Add-ons → Add-on store
 2. Add repository URL:
    - Add-on store → ⋮ → Repositories → paste the GitHub repo URL
-3. Install **Moltbot Assistant**
+3. Install **OpenClaw Assistant**
 
 ## Configuration overview
 All configuration is done via the add-on UI (Options).

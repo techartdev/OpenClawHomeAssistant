@@ -1,8 +1,8 @@
-name: Moltbot Assistant
-version: "0.4.8"
-slug: moltbot_assistant
-description: Run Moltbot Assistant (Clawdbot-compatible) as a Home Assistant add-on.
-url: https://github.com/techartdev/MoltBotHomeAssistant
+name: OpenClaw Assistant
+version: "0.5.0"
+slug: openclaw_assistant
+description: Run OpenClaw Assistant (OpenClaw-compatible) as a Home Assistant add-on.
+url: https://github.com/techartdev/OpenClawHomeAssistant
 arch:
   - amd64
 startup: services
@@ -15,7 +15,7 @@ host_network: true
 # Home Assistant Ingress (UI inside the add-on page)
 ingress: true
 ingress_port: 8099
-panel_title: Moltbot Assistant
+panel_title: OpenClaw Assistant
 panel_icon: mdi:robot
 
 map:
@@ -43,7 +43,7 @@ options:
   # Example: "https://example.duckdns.org:12345" or "http://192.168.1.10:18789"
   gateway_public_url: ""
 
-  # Run `clawdbot doctor --fix` on startup (useful after upgrades; slows restarts)
+  # Run `openclaw doctor --fix` on startup (useful after upgrades; slows restarts)
   run_doctor_on_start: false
 
   homeassistant_token: ""

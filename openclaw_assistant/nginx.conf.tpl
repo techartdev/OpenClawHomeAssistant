@@ -54,7 +54,7 @@ http {
       # (Nabu Casa, DuckDNS, LAN, etc.).
 
       return 200 '<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-      <title>Moltbot Assistant</title>
+      <title>OpenClaw Assistant</title>
       <style>
         body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Cantarell,Noto Sans,sans-serif;margin:0;padding:16px;background:#0b0f14;color:#e6edf3}
         a,button{font:inherit}
@@ -69,7 +69,7 @@ http {
       </style>
       </head><body>
         <div class="card">
-          <h2 style="margin:0 0 8px 0">Moltbot Assistant</h2>
+          <h2 style="margin:0 0 8px 0">OpenClaw Assistant</h2>
           <div class="row" style="margin-bottom:6px">
             <a class="btn" href="__GATEWAY_PUBLIC_URL____GW_PUBLIC_URL_PATH__?token=__GATEWAY_TOKEN__" target="_blank" rel="noopener noreferrer">Open Gateway Web UI</a>
             <a class="btn secondary" href="./terminal/" target="_self">Open Terminal (full page)</a>

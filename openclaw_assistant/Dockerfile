@@ -2,7 +2,7 @@ ARG BUILD_FROM=ghcr.io/hassio-addons/base:14.0.2
 FROM ${BUILD_FROM}
 
 # Base image is Alpine (HA add-ons base). It may only provide Node 18.x.
-# Clawdbot requires Node 20+, so we install a Node 20 musl build directly.
+# OpenClaw requires Node 20+, so we install a Node 20 musl build directly.
 ARG NODE_VERSION=22.12.0
 
 RUN apk add --no-cache \
@@ -42,12 +42,9 @@ RUN set -eu; \
     libstdc++ libgcc libatomic; \
   /usr/local/bin/node -v; /usr/local/bin/npm -v
 
-# Install OpenClaw globally (successor of Clawdbot)
-# We also provide a lightweight `clawdbot` shim for backwards compatibility.
+# Install OpenClaw globally
 RUN npm config set fund false && npm config set audit false \
- && npm install -g openclaw@2026.1.29 \
- && printf '%s\n' '#!/usr/bin/env sh' 'exec openclaw "$@"' > /usr/local/bin/clawdbot \
- && chmod +x /usr/local/bin/clawdbot
+ && npm install -g openclaw@2026.1.29
 
 COPY run.sh /run.sh
 COPY nginx.conf.tpl /etc/nginx/nginx.conf.tpl

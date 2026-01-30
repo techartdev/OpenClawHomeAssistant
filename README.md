@@ -1,8 +1,8 @@
-# Moltbot Assistant – Home Assistant Add-on (Draft)
+# OpenClaw Assistant – Home Assistant Add-on (Draft)
 
-This repository contains a Home Assistant add-on that runs a **Moltbot Assistant** instance on **HAOS**.
+This repository contains a Home Assistant add-on that runs an **OpenClaw Assistant** instance on **HAOS**.
 
-Upstream note: the project has gone through renames. This add-on currently installs **OpenClaw** and keeps a `clawdbot` shim for backwards compatibility.
+Upstream note: the project has gone through renames. This add-on installs **OpenClaw**.
 
 ## What you get
 - Always-on personal assistant running as a Supervisor-managed container
@@ -18,7 +18,7 @@ Upstream note: the project has gone through renames. This add-on currently insta
 ## Install (high level)
 1. Add this repo in Home Assistant:
    Settings → Add-ons → Add-on Store → ⋮ → Repositories
-2. Install **Moltbot Assistant**
+2. Install **OpenClaw Assistant**
 3. Configure options (at minimum: Telegram bot token)
 
 ## Setup / Docs
@@ -28,7 +28,7 @@ See **DOCS.md** for the supported setups:
 
 ## Configuration
 All configuration is done via the add-on UI.
-See the schema in `moltbot_assistant/config.yaml`.
+See the schema in `openclaw_assistant/config.yaml`.
 
 ### Optional: Brave Search
 If you provide `brave_api_key`, the add-on exports `BRAVE_API_KEY` for the assistant’s web search tool.
