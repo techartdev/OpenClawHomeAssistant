@@ -1,5 +1,5 @@
 name: Moltbot Assistant
-version: "0.3.9"
+version: "0.4.0"
 slug: moltbot_assistant
 description: Run Moltbot Assistant (Clawdbot-compatible) as a Home Assistant add-on.
 url: https://github.com/techartdev/ClawdHAAddOn
