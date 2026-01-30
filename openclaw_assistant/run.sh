@@ -154,9 +154,36 @@ if ! command -v openclaw >/dev/null 2>&1; then
   exit 1
 fi
 
+# Bootstrap minimal OpenClaw config ONLY if missing.
+# We do not overwrite or patch existing configs; onboarding owns everything else.
+OPENCLAW_CONFIG_PATH="/config/.openclaw/openclaw.json"
+if [ ! -f "$OPENCLAW_CONFIG_PATH" ]; then
+  echo "INFO: OpenClaw config missing; bootstrapping minimal config at $OPENCLAW_CONFIG_PATH"
+  python3 - <<'PY'
+import json
+import secrets
+from pathlib import Path
+
+cfg_path = Path('/config/.openclaw/openclaw.json')
+cfg_path.parent.mkdir(parents=True, exist_ok=True)
+
+cfg = {
+  "gateway": {
+    "mode": "local",
+    "auth": {
+      "mode": "token",
+      "token": secrets.token_urlsafe(24)
+    }
+  }
+}
+
+cfg_path.write_text(json.dumps(cfg, indent=2) + "\n", encoding='utf-8')
+print("INFO: Wrote minimal OpenClaw config (gateway.mode=local, auth.token generated)")
+PY
+fi
+
 echo "Starting OpenClaw Assistant gateway (openclaw)..."
-# Allow starting even if user hasn't completed onboarding / config wizard yet.
-openclaw gateway run --allow-unconfigured &
+openclaw gateway run &
 GW_PID=$!
 
 # Start web terminal (optional)
