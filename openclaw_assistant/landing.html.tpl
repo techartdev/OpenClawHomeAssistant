@@ -26,31 +26,15 @@
       <a class="btn secondary" href="./terminal/" target="_self">Open Terminal (full page)</a>
     </div>
 
-    <div class="muted" id="gwhint">
+    <div class="muted">
       Tip: The gateway UI is intentionally opened outside of Ingress to avoid websocket/proxy issues.
-      Configure <code>gateway_public_url</code> in the add-on options, then complete onboarding in the terminal.
+      Set <code>gateway_public_url</code> in the add-on options.
     </div>
 
-    <script>
-      (function(){
-        var publicUrl = "__GATEWAY_PUBLIC_URL__";
-        var token = "__GATEWAY_TOKEN__";
-        var btn = document.getElementById("gwbtn");
-        var hint = document.getElementById("gwhint");
-
-        if (!publicUrl || publicUrl === "__GATEWAY_PUBLIC_URL__") {
-          btn.style.display = "none";
-          hint.innerHTML = "Configure <code>gateway_public_url</code> in the add-on options to enable the external Gateway UI link.";
-          return;
-        }
-
-        if (!token || token === "__GATEWAY_TOKEN__") {
-          btn.style.display = "none";
-          hint.innerHTML = "Gateway token not found yet. Open the terminal below and run <code>openclaw onboard</code> (or <code>openclaw configure</code>) to finish setup.";
-          return;
-        }
-      })();
-    </script>
+    <div class="muted" style="margin-top:8px">
+      If the Gateway UI says <b>Unauthorized</b>, you need the token. In the terminal run:
+      <code>openclaw config get gateway.auth.token</code>
+    </div>
 
     <div class="term">
       <iframe src="./terminal/" title="Terminal"></iframe>
