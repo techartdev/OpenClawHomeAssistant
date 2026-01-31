@@ -2,75 +2,142 @@
 
 This add-on runs **OpenClaw** inside **Home Assistant OS (HAOS)**.
 
-The project deliberately keeps the add-on thin:
-- Home Assistant provides the container lifecycle + Ingress
-- OpenClaw provides onboarding/configuration and all assistant features
+It’s designed to be friendly to non-technical users:
+- The add-on provides a simple Home Assistant page (Ingress) with a terminal.
+- You complete setup using OpenClaw’s built-in onboarding commands.
 
-## UI / Ingress behavior
+---
 
-### Ingress page (inside Home Assistant)
-The add-on’s Ingress UI is intentionally simple and reliable:
-- A landing page
-- An embedded **web terminal** (ttyd)
-- A button that opens the **Gateway Web UI** in a separate tab
+## 0) What is what? (quick explanation)
 
-### Gateway Web UI (separate tab)
-The Gateway Web UI requires WebSockets. Rather than tunneling it through HA Ingress,
-we open it directly using a user-provided base URL (`gateway_public_url`).
+- **Ingress page** (inside Home Assistant): a landing page + terminal.
+- **Gateway**: the OpenClaw server running inside the add-on container.
+- **Gateway Web UI (Control UI)**: the web interface you open in your browser.
 
-## OpenClaw configuration philosophy
+The Gateway UI is opened in a **separate tab** (not embedded), because Home Assistant Ingress can have WebSocket issues.
 
-### We do NOT overwrite OpenClaw config
-OpenClaw’s config/state lives under:
-- `/config/.openclaw/` (inside the container)
+---
 
-The add-on **does not** rewrite OpenClaw’s configuration on each start.
-You should use OpenClaw’s own interactive tooling:
-- `openclaw setup`
-- `openclaw onboard`
-- `openclaw configure`
+## 1) Install the add-on
 
-### Minimal bootstrap (first boot only)
-If `/config/.openclaw/openclaw.json` is missing, the add-on bootstraps a minimal strict-JSON config so that
-`openclaw gateway run` can start:
-- `gateway.mode = local`
-- `gateway.auth.mode = token`
-- `gateway.auth.token` generated
-
-After that, onboarding/configure can expand the config normally.
-
-## Installation
-
-1) Home Assistant → Settings → Add-ons → Add-on store
+1) Home Assistant → **Settings → Add-ons → Add-on store**
 2) Add repository URL:
-- Add-on store → ⋮ → Repositories → paste:
+- Add-on store → ⋮ → **Repositories** → paste:
   - `https://github.com/techartdev/OpenClawHomeAssistant`
 3) Install **OpenClaw Assistant**
+4) Start the add-on
 
-## First-time setup checklist
+---
 
-1) Open the add-on page (Ingress)
-2) Use the terminal and run:
-   - `openclaw onboard`
-   - or `openclaw configure`
-3) Optional (recommended): set `gateway_public_url` in add-on options.
-   - Example (LAN): `http://192.168.1.10:18789`
-   - Example (public): `https://example.duckdns.org:12345`
+## 2) First-time setup (step-by-step)
 
-Once `gateway_public_url` is set and OpenClaw has a gateway token, the landing page will show an “Open Gateway Web UI” button.
+Open the add-on page (Ingress). You will see:
+- **Open Gateway Web UI** button
+- **Terminal** embedded on the page
 
-## Add-on options (custom / HA-specific)
+### Step A — Run OpenClaw onboarding
 
-### Terminal (Ingress)
-- `enable_terminal` (default `true`)
+In the terminal, run:
+
+- **Recommended**:
+  - `openclaw onboard`
+
+If you prefer:
+- `openclaw configure`
+
+Follow the prompts.
+
+### Step B — Get your Gateway token (needed for the Web UI)
+
+In the terminal run:
+
+```sh
+openclaw config get gateway.auth.token
+```
+
+Copy the token somewhere safe.
+
+### Step C — Make the Gateway reachable from your browser
+
+You have two common setups:
+
+#### Option 1: Use Home Assistant HTTPS (recommended)
+If your Home Assistant is already exposed via HTTPS (Nabu Casa, reverse proxy, etc.), use that.
+This avoids browser security issues.
+
+#### Option 2: LAN access (http://192.168.x.x)
+If you want to open it directly on your LAN, you must ensure OpenClaw binds to LAN.
+In the terminal:
+
+```sh
+openclaw config set gateway.bind lan
+openclaw config set gateway.port 18789
+openclaw config set gateway.mode local
+```
+
+Then restart the add-on.
+
+---
+
+## 3) Configure the “Open Gateway Web UI” button
+
+The button uses the add-on option:
+- `gateway_public_url`
+
+Set it in Home Assistant → Add-on configuration.
+
+Examples:
+- LAN:
+  - `http://192.168.1.119:18789`
+- Public HTTPS:
+  - `https://example.duckdns.org:12345`
+
+The button will open:
+
+`<gateway_public_url>/?token=<your_token>`
+
+If the UI says **Unauthorized**, you likely used the wrong token. Re-check it with:
+
+```sh
+openclaw config get gateway.auth.token
+```
+
+---
+
+## 4) Important: “requires HTTPS or localhost (secure context)”
+
+Modern browsers sometimes refuse to run the Control UI on **plain HTTP** unless it is **localhost**.
+If you open the Gateway UI over LAN HTTP and see:
+
+> control ui requires HTTPS or localhost (secure context)
+
+You have 3 options:
+
+### Option A — Use HTTPS (best)
+Put the gateway behind HTTPS (recommended long-term).
+
+### Option B — Use localhost via port-forward
+Access it as `http://localhost:18789` using SSH port forwarding from your computer.
+
+### Option C — Allow insecure auth (quick workaround; less secure)
+In the terminal:
+
+```sh
+openclaw config set gateway.controlUi.allowInsecureAuth true
+```
+
+This allows using the Control UI over LAN HTTP.
+
+---
+
+## 5) Add-on options (custom / HA-specific)
+
+This add-on intentionally keeps options minimal. See `openclaw_assistant/config.yaml`.
+
+### Terminal
+- `enable_terminal` (default **true**)
 
 Security note: the terminal gives shell access inside the add-on container.
-Enable it only if you trust your HA admins.
-
-### Gateway UI link
-- `gateway_public_url` (optional)
-
-This does not expose anything by itself; it just controls what URL the Ingress button opens.
 
 ### Home Assistant token
 - `homeassistant_token` (optional)
@@ -79,7 +146,7 @@ If set, it is written to:
 - `/config/secrets/homeassistant.token`
 
 ### Router SSH (generic)
-These options are for custom automations that need SSH access to a router/firewall or other LAN device:
+For custom automations that need SSH access to a router/firewall or other LAN device:
 - `router_ssh_host`
 - `router_ssh_user`
 - `router_ssh_key_path` (default `/data/keys/router_ssh`)
@@ -88,16 +155,19 @@ How to provide the key:
 - Put the private key file under the add-on config directory so it appears in-container at `/data/keys/...`
 - Recommended permissions: `chmod 600`
 
+---
+
 ## Troubleshooting
 
-### Ingress loads but Gateway button is missing
-- Set `gateway_public_url` in add-on options.
-- If `gateway_public_url` is set but the button is still hidden, OpenClaw likely has not produced a gateway token yet.
-  Use the terminal and run `openclaw onboard` / `openclaw configure`.
+### I get ERR_CONNECTION_REFUSED
+- The gateway is not reachable at that IP/port.
+- Confirm bind/port in terminal:
+  - `openclaw config get gateway.bind`
+  - `openclaw config get gateway.port`
 
-### Gateway UI opens but doesn’t connect
-- Confirm the browser can reach `gateway_public_url` (LAN routing / DNS / NAT).
-- WebSockets must be allowed end-to-end.
+### The Gateway UI opens but shows Unauthorized
+- Fetch the token:
+  - `openclaw config get gateway.auth.token`
 
 ### Terminal isn’t visible
 - Ensure `enable_terminal=true`

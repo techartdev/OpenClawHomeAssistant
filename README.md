@@ -55,4 +55,4 @@ See `openclaw_assistant/config.yaml` for the authoritative schema.
 
 ## Docs
 
-See **DOCS.md** for more detailed setup and troubleshooting.
+See **DOCS.md** for a step-by-step first-time setup guide (written for non-technical users) + troubleshooting.
