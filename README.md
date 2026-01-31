@@ -56,3 +56,8 @@ See `openclaw_assistant/config.yaml` for the authoritative schema.
 ## Docs
 
 See **DOCS.md** for a step-by-step first-time setup guide + troubleshooting.
+
+## Support / Donations
+
+Hey! You can send me money on Revolut by following this link:
+- https://revolut.me/vanyo6dhw
