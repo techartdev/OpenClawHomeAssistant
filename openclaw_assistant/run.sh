@@ -222,8 +222,17 @@ landing = landing_tpl.replace('__GATEWAY_TOKEN__', token)
 landing = landing.replace('__GATEWAY_PUBLIC_URL__', public_url)
 landing = landing.replace('__GW_PUBLIC_URL_PATH__', gw_path)
 
-Path('/etc/nginx/html').mkdir(parents=True, exist_ok=True)
-Path('/etc/nginx/html/index.html').write_text(landing)
+out_dir = Path('/etc/nginx/html')
+out_dir.mkdir(parents=True, exist_ok=True)
+out_file = out_dir / 'index.html'
+out_file.write_text(landing)
+
+# Ensure nginx can read it even if base image uses restrictive umask/permissions.
+try:
+    out_dir.chmod(0o755)
+    out_file.chmod(0o644)
+except Exception:
+    pass
 PY
 
 echo "Starting ingress proxy (nginx) on :8099 ..."
