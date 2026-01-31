@@ -56,3 +56,8 @@ See `openclaw_assistant/config.yaml` for the authoritative schema.
 ## Docs
 
 See **DOCS.md** for a step-by-step first-time setup guide + troubleshooting.
+
+## Support / Donations
+
+If you find this useful and you want to bring me a coffee to make more useful things, or support the project, use the link below:
+- https://revolut.me/vanyo6dhw
