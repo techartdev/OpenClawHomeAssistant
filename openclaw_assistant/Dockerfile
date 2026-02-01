@@ -29,8 +29,10 @@ RUN curl -fsSL https://deb.nodesource.com/setup_22.x | bash - \
  && rm -rf /var/lib/apt/lists/*
 
 # Install ttyd (web terminal) - not in Debian repos, download binary
+# Docker TARGETARCH: amd64, arm64, arm/v7 → ttyd filenames: x86_64, aarch64, armhf
 ARG TARGETARCH
-RUN ARCH=$(echo ${TARGETARCH:-$(dpkg --print-architecture)} | sed 's/aarch64/arm64/;s/armv7/armhf/;s/amd64/x86_64/') \
+RUN ARCH=$(echo ${TARGETARCH:-$(dpkg --print-architecture)} | sed 's|arm64|aarch64|;s|arm/v7|armhf|;s|armv7|armhf|;s|amd64|x86_64|') \
+ && echo "Downloading ttyd for arch: ${ARCH}" \
  && curl -fsSL "https://github.com/tsl0922/ttyd/releases/download/1.7.7/ttyd.${ARCH}" -o /usr/local/bin/ttyd \
  && chmod +x /usr/local/bin/ttyd
 
