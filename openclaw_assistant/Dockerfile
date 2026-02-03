@@ -41,6 +41,14 @@ RUN ARCH=$(echo ${TARGETARCH:-$(dpkg --print-architecture)} | sed 's|arm64|aarch
 
 RUN node -v && npm -v
 
+# Install Chromium for website automation tasks
+# Includes necessary dependencies for headless browser operation
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    chromium \
+    chromium-driver \
+ && apt-get clean \
+ && rm -rf /var/lib/apt/lists/*
+
 # Install Homebrew (Linuxbrew) for OpenClaw skill dependencies
 # Homebrew is required for installing CLI tools like gemini, aider, etc.
 ENV HOMEBREW_NO_AUTO_UPDATE=1 \
