@@ -43,6 +43,13 @@ set +x
 
 # HA add-ons mount persistent storage at /config (maps to /addon_configs/<slug> on the host).
 export HOME=/config
+
+# Explicitly set OpenClaw directories to ensure they persist across add-on updates
+# This prevents loss of installed skills, configuration, and workspace state
+export OPENCLAW_CONFIG_DIR=/config/.openclaw
+export OPENCLAW_WORKSPACE_DIR=/config/clawd
+export XDG_CONFIG_HOME=/config
+
 mkdir -p /config/.openclaw /config/clawd /config/keys /config/secrets
 
 # Back-compat: some docs/scripts assume /data; point it at /config.
@@ -184,6 +191,11 @@ cfg = {
     "auth": {
       "mode": "token",
       "token": secrets.token_urlsafe(24)
+    }
+  },
+  "agents": {
+    "defaults": {
+      "workspace": "/config/clawd"
     }
   }
 }
