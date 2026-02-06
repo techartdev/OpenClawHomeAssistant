@@ -1,0 +1,52 @@
+configuration:
+  timezone:
+    name: Strefa czasowa
+    description: Strefa czasowa dla dodatku (np. Europe/Warsaw, America/New_York)
+  
+  enable_terminal:
+    name: Włącz terminal webowy
+    description: Włącz przycisk terminala webowego w Home Assistant (Ingress) przez ttyd
+  
+  terminal_port:
+    name: Port terminala
+    description: Numer portu dla terminala webowego (domyślnie - 7681). Zmień jeśli ten port koliduje z inną usługą.
+  
+  gateway_public_url:
+    name: Publiczny URL Gateway
+    description: Publiczny bazowy URL do otwierania Web UI Gateway w nowej karcie (nie osadzone). Przykład - https://example.duckdns.org:12345 lub http://192.168.1.10:18789
+  
+  homeassistant_token:
+    name: Token Home Assistant
+    description: Opcjonalnie - długoterminowy token Home Assistant dla lokalnych skryptów/narzędzi API HA
+  
+  router_ssh_host:
+    name: Host SSH routera
+    description: Opcjonalnie - nazwa hosta SSH routera/firewalla lub adres IP
+  
+  router_ssh_user:
+    name: Użytkownik SSH routera
+    description: Opcjonalnie - nazwa użytkownika SSH routera/firewalla
+  
+  router_ssh_key_path:
+    name: Ścieżka klucza SSH routera
+    description: Ścieżka do klucza prywatnego SSH dla dostępu do routera (domyślnie - /data/keys/router_ssh)
+  
+  clean_session_locks_on_start:
+    name: Wyczyść blokady sesji przy starcie
+    description: Usuń przestarzałe pliki blokad sesji pozostawione po awariach/restartach gdy dodatek się uruchamia
+  
+  clean_session_locks_on_exit:
+    name: Wyczyść blokady sesji przy wyjściu
+    description: Usuń pliki blokad sesji gdy dodatek zatrzymuje się poprawnie
+  
+  gateway_bind_mode:
+    name: Tryb bindowania Gateway
+    description: Tryb bindowania sieci - loopback (tylko 127.0.0.1, bardziej bezpieczny) lub lan (wszystkie interfejsy, dostępny z sieci lokalnej)
+  
+  gateway_port:
+    name: Port Gateway
+    description: Numer portu na którym gateway OpenClaw będzie nasłuchiwał (domyślnie - 18789)
+  
+  allow_insecure_auth:
+    name: Zezwól na niezabezpieczone uwierzytelnianie HTTP
+    description: Zezwól na uwierzytelnianie HTTP dla dostępu do gateway w sieci LAN. UWAGA - Włącz tylko jeśli używasz HTTP (nie HTTPS) dla gateway_public_url. Wymagane dla dostępu przez przeglądarkę przez HTTP.
