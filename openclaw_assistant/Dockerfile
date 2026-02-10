@@ -97,7 +97,7 @@ USER root
 
 # Install OpenClaw globally
 RUN npm config set fund false && npm config set audit false \
- && npm install -g openclaw@2026.2.6-3
+ && npm install -g openclaw@2026.2.9-3
 
 COPY run.sh /run.sh
 COPY oc_config_helper.py /oc_config_helper.py

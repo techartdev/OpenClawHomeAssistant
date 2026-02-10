@@ -1,5 +1,5 @@
 name: OpenClaw Assistant
-version: "0.5.37"
+version: "0.5.38"
 slug: openclaw_assistant
 description: Run OpenClaw Assistant (OpenClaw-compatible) as a Home Assistant add-on.
 url: https://github.com/techartdev/OpenClawHomeAssistant
