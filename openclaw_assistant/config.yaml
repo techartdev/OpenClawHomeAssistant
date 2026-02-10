@@ -25,6 +25,9 @@ map:
 options:
   timezone: "Europe/Sofia"
 
+  # Ingress port (nginx listens on this port for Home Assistant Ingress)
+  ingress_port: 8099
+
   # Enable web terminal inside Home Assistant (Ingress) via ttyd
   enable_terminal: true
 
@@ -78,6 +81,7 @@ options:
 
 schema:
   timezone: str
+  ingress_port: int(1024,65535)?
   enable_terminal: bool?
   terminal_port: int(1024,65535)?
   gateway_public_url: str?
