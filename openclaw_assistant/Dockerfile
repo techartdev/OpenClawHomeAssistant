@@ -26,6 +26,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     nano \
     fd-find \
     ripgrep \
+    rsync \
     bat \
     less \
  && apt-get clean \
