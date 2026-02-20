@@ -57,8 +57,10 @@ options:
   gateway_mode: local
 
   # Gateway network bind mode:
-  # - loopback: bind to 127.0.0.1 only (local access only, more secure)
+  # - loopback: bind to 127.0.0.1 only (local access only, most secure)
   # - lan: bind to all interfaces (accessible from local network)
+  # - tailnet: bind to Tailscale IP only (accessible only via Tailscale — recommended for remote access)
+  # - auto: prefer loopback; use tailnet if Tailscale is available
   # Default is loopback for security.
   gateway_bind_mode: loopback
 
@@ -95,7 +97,7 @@ schema:
   clean_session_locks_on_start: bool?
   clean_session_locks_on_exit: bool?
   gateway_mode: list(local|remote)?
-  gateway_bind_mode: list(loopback|lan)?
+  gateway_bind_mode: list(loopback|lan|tailnet|auto)?
   gateway_port: int(1,65535)?
   enable_openai_api: bool?
   allow_insecure_auth: bool?

@@ -63,7 +63,7 @@ def apply_gateway_settings(mode: str, bind_mode: str, port: int, enable_openai_a
     
     Args:
         mode: "local" or "remote"
-        bind_mode: "loopback" or "lan"
+        bind_mode: "loopback", "lan", "tailnet", or "auto"
         port: Port number to listen on (must be 1-65535)
         enable_openai_api: Enable OpenAI-compatible Chat Completions endpoint
         allow_insecure_auth: Allow insecure HTTP authentication
@@ -74,8 +74,8 @@ def apply_gateway_settings(mode: str, bind_mode: str, port: int, enable_openai_a
         return False
     
     # Validate bind mode
-    if bind_mode not in ["loopback", "lan"]:
-        print(f"ERROR: Invalid bind_mode '{bind_mode}'. Must be 'loopback' or 'lan'")
+    if bind_mode not in ["loopback", "lan", "tailnet", "auto"]:
+        print(f"ERROR: Invalid bind_mode '{bind_mode}'. Must be 'loopback', 'lan', 'tailnet', or 'auto'")
         return False
     
     # Validate port range
@@ -157,7 +157,7 @@ def main():
     
     if cmd == "apply-gateway-settings":
         if len(sys.argv) != 7:
-            print("Usage: oc_config_helper.py apply-gateway-settings <local|remote> <loopback|lan> <port> <enable_openai_api:true|false> <allow_insecure:true|false>")
+            print("Usage: oc_config_helper.py apply-gateway-settings <local|remote> <loopback|lan|tailnet|auto> <port> <enable_openai_api:true|false> <allow_insecure:true|false>")
             sys.exit(1)
         mode = sys.argv[2]
         bind_mode = sys.argv[3]
