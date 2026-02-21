@@ -45,7 +45,7 @@ configuration:
   
   gateway_bind_mode:
     name: Gateway Bind Mode
-    description: Network bind mode - loopback (127.0.0.1 only, more secure) or lan (all interfaces, accessible from local network)
+    description: Network bind mode - auto (OpenClaw selects), loopback (127.0.0.1 only, more secure), lan (all interfaces), or tailnet (Tailscale interface only).
   
   gateway_port:
     name: Gateway Port

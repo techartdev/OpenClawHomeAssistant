@@ -2,6 +2,25 @@
 
 All notable changes to the OpenClaw Assistant Home Assistant Add-on will be documented in this file.
 
+## [0.5.47] - 2026-02-21
+
+### Added
+- Add new `gateway_bind_mode` values: `auto` and `tailnet`.
+
+### Changed
+- Update startup helper validation and CLI usage to support `auto|loopback|lan|tailnet` bind modes.
+- Update add-on translations and docs for the expanded gateway bind mode options.
+
+## [0.5.46] - 2026-02-18
+
+### Added
+- New add-on option `force_ipv4_dns` to enable IPv4-first DNS ordering for Node network calls (`NODE_OPTIONS=--dns-result-order=ipv4first`), helping Telegram connectivity on IPv6-broken networks.
+
+### Changed
+- Added translations for `force_ipv4_dns` option.
+- Updated docs with `force_ipv4_dns` configuration and Telegram network troubleshooting note.
+- Bump OpenClaw to 2026.2.17
+
 ## [0.5.45] - 2026-02-16
 
 ### Changed

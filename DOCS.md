@@ -198,7 +198,7 @@ All options are set via **Settings → Apps/Add-ons → OpenClaw Assistant → C
 | Option | Type | Default | Description |
 |---|---|---|---|
 | `gateway_mode` | `local` / `remote` | `local` | **local**: run gateway in this add-on. **remote**: connect to an external gateway |
-| `gateway_bind_mode` | `loopback` / `lan` | `loopback` | **loopback**: 127.0.0.1 only (secure). **lan**: all interfaces (LAN-accessible). Only applies when `gateway_mode` is `local` |
+| `gateway_bind_mode` | `auto` / `loopback` / `lan` / `tailnet` | `loopback` | **loopback**: 127.0.0.1 only (secure). **lan**: all interfaces (LAN-accessible). **tailnet**: Tailscale interface only. **auto**: let OpenClaw choose bind behavior. Only applies when `gateway_mode` is `local` |
 | `gateway_port` | int | `18789` | Port for the gateway. Only applies when `gateway_mode` is `local` |
 | `gateway_public_url` | string | _(empty)_ | Public URL for the "Open Gateway Web UI" button. Example: `http://192.168.1.119:18789` |
 | `enable_openai_api` | bool | `false` | Enable the OpenAI-compatible `/v1/chat/completions` endpoint. Required for [Assist pipeline integration](#6c-assist-pipeline-integration-openai-api) |

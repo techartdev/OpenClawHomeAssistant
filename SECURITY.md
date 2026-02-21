@@ -42,6 +42,8 @@ OpenClaw is an **agentic AI assistant** — it can plan, reason, and execute act
 
 When `gateway_bind_mode` is set to `lan`, the gateway is accessible to **all devices on your local network**. When exposed to the internet (via port forwarding or reverse proxy), it becomes accessible to **anyone**.
 
+When `gateway_bind_mode` is set to `tailnet`, the gateway is exposed only on your Tailscale network. This significantly reduces exposure compared with `lan`, but all authenticated tailnet peers can still reach it.
+
 **Risks**:
 - Unauthorized users could interact with your AI agent
 - API tokens could be intercepted over plain HTTP
@@ -51,6 +53,7 @@ When `gateway_bind_mode` is set to `lan`, the gateway is accessible to **all dev
 - Use HTTPS whenever possible (reverse proxy with TLS)
 - Never expose the gateway port directly to the internet without authentication and encryption
 - Use `gateway_bind_mode: loopback` if you only need local access
+- Prefer `gateway_bind_mode: tailnet` over `lan` when you need remote/private-network access
 - Keep your gateway auth token secret
 
 ### 3. Plain HTTP Authentication (`allow_insecure_auth`)
@@ -147,7 +150,8 @@ AI agents that process external content (web pages, documents, emails) are vulne
 | Practice | Priority |
 |---|---|
 | Use HTTPS for remote access | High |
-| Keep `gateway_bind_mode: loopback` unless LAN access is needed | High |
+| Keep `gateway_bind_mode: loopback` unless network access is needed | High |
+| Prefer `gateway_bind_mode: tailnet` over `lan` for remote/private access | High |
 | Only install skills from trusted sources | High |
 | Review exposed entities in Assist pipeline | High |
 | Keep the add-on updated | High |

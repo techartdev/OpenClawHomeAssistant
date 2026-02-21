@@ -45,7 +45,7 @@ configuration:
   
   gateway_bind_mode:
     name: Modo de Vinculação do Gateway
-    description: Modo de vinculação de rede - loopback (somente 127.0.0.1, mais seguro) ou lan (todas as interfaces, acessível pela rede local)
+    description: Modo de vinculação de rede - auto (OpenClaw escolhe), loopback (somente 127.0.0.1, mais seguro), lan (todas as interfaces) ou tailnet (somente interface Tailscale).
   
   gateway_port:
     name: Porta do Gateway

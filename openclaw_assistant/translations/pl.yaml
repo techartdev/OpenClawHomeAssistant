@@ -41,7 +41,7 @@ configuration:
   
   gateway_bind_mode:
     name: Tryb bindowania Gateway
-    description: Tryb bindowania sieci - loopback (tylko 127.0.0.1, bardziej bezpieczny) lub lan (wszystkie interfejsy, dostępny z sieci lokalnej)
+    description: Tryb bindowania sieci - auto (OpenClaw wybiera), loopback (tylko 127.0.0.1, bezpieczniej), lan (wszystkie interfejsy) lub tailnet (tylko interfejs Tailscale).
   
   gateway_port:
     name: Port Gateway
