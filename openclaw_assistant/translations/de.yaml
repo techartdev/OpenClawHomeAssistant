@@ -58,6 +58,10 @@ configuration:
     name: Zusätzliche erlaubte Origins
     description: Kommagetrennte zusätzliche Control-UI-Origins, die bei lan_https in gateway.controlUi.allowedOrigins zusammengeführt werden (Beispiel - https://ha.example.com:8443,capacitor://localhost)
 
+  controlui_disable_device_auth:
+    name: Control-UI-Geräte-Pairing deaktivieren (lan_https)
+    description: "Wenn EIN (empfohlen), setzt dies gateway.controlUi.dangerouslyDisableDeviceAuth=true, überspringt die Gerätefreigabe und vermeidet Fehler 1008 im LAN-HTTPS-Modus. Für Heim-/vertrauenswürdiges LAN eingeschaltet lassen. Nur AUS schalten, wenn du striktes Geräte-Pairing für jeden neuen Browser/jedes neue Gerät willst."
+
   gateway_bind_mode:
     name: Gateway-Bindungsmodus
     description: Netzwerk-Bindungsmodus - loopback (nur 127.0.0.1, am sichersten), lan (alle Schnittstellen) oder tailnet (nur Tailscale-Schnittstelle). Wird durch Zugriffsmodus-Voreinstellungen überschrieben.

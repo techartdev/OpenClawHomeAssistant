@@ -58,6 +58,10 @@ configuration:
     name: Допълнителни разрешени origins
     description: Допълнителни origins за Control UI, разделени със запетая; сливат се в gateway.controlUi.allowedOrigins при lan_https (пример - https://ha.example.com:8443,capacitor://localhost)
 
+  controlui_disable_device_auth:
+    name: Изключи device pairing за Control UI (lan_https)
+    description: "Когато е ВКЛ. (препоръчително), задава gateway.controlUi.dangerouslyDisableDeviceAuth=true и пропуска одобрението по устройство, за да избегне error 1008 в LAN HTTPS режим. Остави ВКЛ. за домашна/доверена мрежа. Изключи само ако искаш стриктно pairing потвърждение за всеки нов браузър/устройство."
+
   gateway_bind_mode:
     name: Режим на свързване на Gateway
     description: Режим на мрежово свързване - loopback (само 127.0.0.1, най-сигурен), lan (всички интерфейси) или tailnet (само Tailscale интерфейс). Пренебрегва се от предварителните режими на достъп.

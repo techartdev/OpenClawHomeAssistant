@@ -181,17 +181,16 @@ def apply_gateway_settings(mode: str, remote_url: str, bind_mode: str, port: int
         return True
 
 
-def set_control_ui_origins(origins_csv: str, additional_origins_csv: str = ""): 
+def set_control_ui_origins(origins_csv: str, additional_origins_csv: str = "", disable_device_auth: bool = True): 
     """
     Configure gateway.controlUi for the built-in HTTPS proxy.
 
     Sets:
       - allowedOrigins: the HTTPS proxy origins so the browser WebSocket
         is accepted (required since v2026.2.21).
-      - dangerouslyDisableDeviceAuth: true — skips the interactive device
-        pairing ceremony.  In a self-hosted HA add-on the user already
-        controls the gateway token, so the pairing step adds friction
-        without meaningful security benefit.
+      - dangerouslyDisableDeviceAuth: controlled by add-on option
+        `controlui_disable_device_auth` (default true). When true, skips
+        interactive device pairing; token auth remains enforced.
 
     Also removes any stale/invalid keys (e.g. pairingMode) that may have
     been written by earlier add-on versions.
@@ -231,11 +230,13 @@ def set_control_ui_origins(origins_csv: str, additional_origins_csv: str = ""):
         changes.append(f"allowedOrigins: {current_origins} -> {merged_origins}")
 
     # --- dangerouslyDisableDeviceAuth ---
-    # Skips the interactive pairing handshake (error 1008: pairing required).
-    # Token auth is still enforced; this only disables the per-device approval.
-    if control_ui.get("dangerouslyDisableDeviceAuth") is not True:
-        control_ui["dangerouslyDisableDeviceAuth"] = True
-        changes.append("dangerouslyDisableDeviceAuth: True")
+    # Optional bypass of interactive per-device pairing (error 1008: pairing required).
+    # Token auth is still enforced; this only controls the approval ceremony.
+    desired_device_auth_flag = True if disable_device_auth else False
+    if control_ui.get("dangerouslyDisableDeviceAuth") is not desired_device_auth_flag:
+        prev = control_ui.get("dangerouslyDisableDeviceAuth")
+        control_ui["dangerouslyDisableDeviceAuth"] = desired_device_auth_flag
+        changes.append(f"dangerouslyDisableDeviceAuth: {prev} -> {desired_device_auth_flag}")
 
     # --- Remove invalid keys from earlier add-on versions ---
     for stale_key in ("pairingMode",):
@@ -244,7 +245,8 @@ def set_control_ui_origins(origins_csv: str, additional_origins_csv: str = ""):
             changes.append(f"removed invalid key: {stale_key}")
 
     if not changes:
-        print(f"INFO: controlUi already correct: origins={merged_origins}, deviceAuth=disabled")
+        status = "disabled" if desired_device_auth_flag else "enabled"
+        print(f"INFO: controlUi already correct: origins={merged_origins}, deviceAuth={status}")
         return True
 
     if write_config(cfg):
@@ -287,12 +289,15 @@ def main():
         sys.exit(0)
     
     elif cmd == "set-control-ui-origins":
-        if len(sys.argv) not in (3, 4):
-            print("Usage: oc_config_helper.py set-control-ui-origins <origins_csv> [additional_origins_csv]")
+        if len(sys.argv) not in (3, 4, 5):
+            print("Usage: oc_config_helper.py set-control-ui-origins <origins_csv> [additional_origins_csv] [disable_device_auth:true|false]")
             sys.exit(1)
         origins_csv = sys.argv[2]
-        additional_origins_csv = sys.argv[3] if len(sys.argv) == 4 else ""
-        success = set_control_ui_origins(origins_csv, additional_origins_csv)
+        additional_origins_csv = sys.argv[3] if len(sys.argv) >= 4 else ""
+        disable_device_auth = True
+        if len(sys.argv) == 5:
+            disable_device_auth = sys.argv[4].strip().lower() == "true"
+        success = set_control_ui_origins(origins_csv, additional_origins_csv, disable_device_auth)
         sys.exit(0 if success else 1)
 
     elif cmd == "set":

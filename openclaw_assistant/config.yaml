@@ -1,5 +1,5 @@
 name: OpenClaw Assistant
-version: "0.5.55"
+version: "0.5.56"
 slug: openclaw_assistant
 description: Run OpenClaw Assistant (OpenClaw-compatible) as a Home Assistant add-on.
 url: https://github.com/techartdev/OpenClawHomeAssistant
@@ -100,6 +100,11 @@ options:
   # Example: "https://ha.example.com:8443,capacitor://localhost"
   gateway_additional_allowed_origins: ""
 
+  # In lan_https mode, disable per-device Control UI auth ceremony.
+  # Default true (recommended) to avoid interactive pairing error 1008 on LAN.
+  # Set false only if you explicitly want strict per-device approvals.
+  controlui_disable_device_auth: true
+
   # Enable OpenAI-compatible Chat Completions API endpoint
   # When enabled, OpenClaw can be used as a conversation agent in HA Assist pipeline
   # via Extended OpenAI Conversation (HACS) or any OpenAI-compatible client
@@ -151,6 +156,7 @@ schema:
   gateway_auth_mode: list(token|trusted-proxy)?
   gateway_trusted_proxies: str?
   gateway_additional_allowed_origins: str?
+  controlui_disable_device_auth: bool?
   enable_openai_api: bool?
   force_ipv4_dns: bool?
   gateway_env_vars:

@@ -58,6 +58,10 @@ configuration:
     name: Origens permitidas adicionais
     description: Origens extras da Control UI separadas por vírgula, mescladas em gateway.controlUi.allowedOrigins no modo lan_https (exemplo - https://ha.example.com:8443,capacitor://localhost)
 
+  controlui_disable_device_auth:
+    name: Desativar pareamento por dispositivo no Control UI (lan_https)
+    description: "Quando LIGADO (recomendado), define gateway.controlUi.dangerouslyDisableDeviceAuth=true para pular aprovação por dispositivo e evitar erro 1008 no modo LAN HTTPS. Mantenha LIGADO em rede doméstica/confiável. Desligue apenas se quiser pareamento estrito para cada novo navegador/dispositivo."
+
   gateway_bind_mode:
     name: Modo de Vinculação do Gateway
     description: Modo de vinculação de rede - loopback (somente 127.0.0.1, mais seguro), lan (todas as interfaces) ou tailnet (somente interface Tailscale). Substituído pelas predefinições do modo de acesso.

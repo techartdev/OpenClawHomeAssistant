@@ -58,6 +58,10 @@ configuration:
     name: Additional Allowed Origins
     description: Comma-separated extra Control UI origins to merge into gateway.controlUi.allowedOrigins in lan_https mode (example - https://ha.example.com:8443,capacitor://localhost)
 
+  controlui_disable_device_auth:
+    name: Disable Control UI Device Pairing (lan_https)
+    description: "When ON (recommended), sets gateway.controlUi.dangerouslyDisableDeviceAuth=true to skip per-device approval and avoid error 1008 in LAN HTTPS mode. Keep ON for home/trusted LAN. Turn OFF only when you want strict per-device pairing prompts on every new browser/device."
+
   gateway_bind_mode:
     name: Gateway Bind Mode
     description: Network bind mode - loopback (127.0.0.1 only, most secure), lan (all interfaces), or tailnet (Tailscale interface only). Overridden by access_mode presets.

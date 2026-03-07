@@ -51,6 +51,10 @@ configuration:
     name: Dodatkowe dozwolone origins
     description: Dodatkowe origins Control UI rozdzielone przecinkami; łączone z gateway.controlUi.allowedOrigins w trybie lan_https (przykład - https://ha.example.com:8443,capacitor://localhost)
 
+  controlui_disable_device_auth:
+    name: Wyłącz parowanie urządzeń Control UI (lan_https)
+    description: "Gdy WŁĄCZONE (zalecane), ustawia gateway.controlUi.dangerouslyDisableDeviceAuth=true, pomija akceptację per-urządzenie i zapobiega błędowi 1008 w trybie LAN HTTPS. Zostaw WŁĄCZONE w domowej/zaufanej sieci. Wyłącz tylko jeśli chcesz ścisłe parowanie dla każdej nowej przeglądarki/urządzenia."
+
   gateway_bind_mode:
     name: Tryb bindowania Gateway
     description: Tryb bindowania sieci - loopback (tylko 127.0.0.1, najbezpieczniejszy), lan (wszystkie interfejsy) lub tailnet (tylko interfejs Tailscale). Nadpisywane przez ustawienia trybu dostępu.

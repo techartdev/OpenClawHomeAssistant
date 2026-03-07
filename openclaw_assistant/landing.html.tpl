@@ -211,7 +211,7 @@ SSL tab:  Request a new SSL certificate (Let's Encrypt or custom)</pre>
       'pairing required': {
         friendly: 'The Gateway requires device pairing before the Control UI can connect.',
         fix: ACCESS_MODE === 'lan_https'
-          ? 'Restart the add-on — it auto-sets <code>controlUi.dangerouslyDisableDeviceAuth: true</code> to skip pairing (token auth is still enforced). <br><small>Note: v2026.2.22+ shows an <em>expected</em> security warning for this flag in the gateway logs — it is safe to ignore.</small>'
+          ? 'Restart the add-on — by default it sets <code>controlUi.dangerouslyDisableDeviceAuth: true</code> to skip pairing (token auth is still enforced). You can change this via <code>controlui_disable_device_auth</code> in add-on options. <br><small>Note: v2026.2.22+ shows an <em>expected</em> security warning for this flag in the gateway logs — it is safe to ignore.</small>'
           : 'Set <code>access_mode</code> to <b>lan_https</b> and restart. Or from the terminal: edit <code>/config/.openclaw/openclaw.json</code> and set <code>gateway.controlUi.dangerouslyDisableDeviceAuth: true</code>, then restart the gateway.'
       },
       'origin not allowed': {

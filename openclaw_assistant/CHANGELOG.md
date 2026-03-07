@@ -2,6 +2,19 @@
 
 All notable changes to the OpenClaw Assistant Home Assistant Add-on will be documented in this file.
 
+## [Unreleased]
+
+### Added
+- New add-on option `controlui_disable_device_auth` (default: `true`) to control whether `gateway.controlUi.dangerouslyDisableDeviceAuth` is enabled in `lan_https` mode.
+
+### Changed
+- `set-control-ui-origins` helper now accepts an explicit device-auth toggle and applies `dangerouslyDisableDeviceAuth` accordingly instead of forcing it on.
+- `run.sh` now forwards the add-on option to the config helper.
+- Control UI guidance text and docs were updated to explain when device-pairing bypass should be ON vs OFF.
+
+### Translations
+- Added `controlui_disable_device_auth` labels/descriptions to: `en`, `bg`, `de`, `es`, `pl`, `pt-BR`.
+
 ## [0.5.54] - 2026-02-25
 
 ### Changed
