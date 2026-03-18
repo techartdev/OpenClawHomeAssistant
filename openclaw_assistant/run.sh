@@ -860,6 +860,53 @@ stop_gw_relay() {
   fi
 }
 
+# Find a running gateway daemon's PID using multiple detection methods.
+# Used by the supervisor loop to detect self-restarts (SIGUSR1) without
+# spawning duplicate gateway instances that collide on the port.
+#
+# Three tiers, tried in order of reliability:
+#   1. Port ownership via `ss -tlnp` — authoritative, but only works once
+#      the daemon has bound the port (can take 20+ s on Pi hardware).
+#   2. Process title via `pgrep -f openclaw-gateway` — works after Node.js
+#      sets process.title, which also happens late during init.
+#   3. /proc cmdline scan — catches the daemon IMMEDIATELY after fork,
+#      before title or port bind, by matching "openclaw" in the cmdline.
+#      Excludes known PIDs (nginx, ttyd, relay, our shell, old GW_PID).
+#
+# Returns the PID on stdout and exit 0, or exits with code 1 if nothing found.
+find_gateway_daemon_pid() {
+  local pid=""
+
+  # Tier 1: port ownership (authoritative once port is bound)
+  pid=$(ss -tlnp 2>/dev/null \
+    | grep ":${GATEWAY_INTERNAL_PORT} " \
+    | sed -n 's/.*pid=\([0-9]*\).*/\1/p' \
+    | head -1)
+  [ -n "$pid" ] && { echo "$pid"; return 0; }
+
+  # Tier 2: process title (after Node sets process.title)
+  pid=$(pgrep -f "openclaw-gateway" 2>/dev/null | head -1)
+  [ -n "$pid" ] && { echo "$pid"; return 0; }
+
+  # Tier 3: scan /proc for any openclaw process we don't already know about.
+  # The daemon's cmdline (e.g. node /usr/.../openclaw/...) contains "openclaw"
+  # from the moment it is forked, even before process.title is set.
+  local known=" ${NGINX_PID:-0} ${TTYD_PID:-0} ${GW_RELAY_PID:-0} ${GW_PID:-0} $$ "
+  local f cand
+  for f in /proc/[0-9]*/cmdline; do
+    [ -r "$f" ] || continue
+    if tr '\0' ' ' < "$f" 2>/dev/null | grep -q "openclaw"; then
+      cand="${f#/proc/}"
+      cand="${cand%%/*}"
+      case "$known" in *" $cand "*) continue ;; esac
+      echo "$cand"
+      return 0
+    fi
+  done
+
+  return 1
+}
+
 if ! start_openclaw_runtime; then
   exit 1
 fi
@@ -984,11 +1031,19 @@ fi
 #   long-running daemon and then exits. When the gateway self-restarts (SIGUSR1 /
 #   `openclaw gateway restart`), the old daemon exits and a NEW daemon is forked —
 #   the new PID is NOT a child of this shell so `wait` cannot block on it.
+#
+#   The new daemon can take 20-30 seconds to initialise on low-power hardware
+#   (Pi / eMMC). During that time its process.title and port binding are not yet
+#   visible, but the process itself exists in /proc with "openclaw" in its cmdline.
+#
 #   Strategy:
-#     1. `wait` for our child (the wrapper). When it exits, check if the daemon
-#        is still alive (`pgrep`). If yes → re-track and poll with `kill -0`.
+#     1. `wait` for our child (the wrapper). After it exits, use
+#        `find_gateway_daemon_pid` (port → pgrep → /proc scan) with retries
+#        to find the daemon. If found → re-track and poll with `kill -0`.
 #     2. When the re-tracked daemon eventually exits (crash or another restart),
-#        `kill -0` fails, we check again for a live daemon to re-track, or restart.
+#        `kill -0` fails, we check again for a live daemon to re-track.
+#     3. Before any supervisor-initiated restart, do a final port-occupancy
+#        guard to prevent launching a duplicate.
 GW_IS_CHILD=true   # true only when GW_PID was started by us (can use `wait`)
 
 while true; do
@@ -1010,22 +1065,42 @@ while true; do
     break
   fi
 
-  # Give a potential self-restart time to spawn the new daemon.
-  sleep 2
-
-  # Detect self-restart: look for a live `openclaw-gateway` process.
-  # If one exists, the runtime restarted itself — re-track and monitor
-  # instead of spawning a duplicate (which would collide on the port).
+  # --- Detect self-restart ---------------------------------------------------
+  # Try up to 10 times (≈ 20 s) using all 3 tiers of find_gateway_daemon_pid.
+  # Tier 3 (/proc scan) usually finds the daemon on the very first attempt
+  # because the process exists immediately after fork, even before port bind
+  # or process.title. The retries cover edge cases on extremely slow I/O.
   RESTARTED_PID=""
   if [ "$GATEWAY_MODE" != "remote" ]; then
-    RESTARTED_PID=$(pgrep -f "openclaw-gateway" 2>/dev/null | head -1 || true)
+    for _attempt in 1 2 3 4 5 6 7 8 9 10; do
+      RESTARTED_PID=$(find_gateway_daemon_pid 2>/dev/null || true)
+      [ -n "$RESTARTED_PID" ] && break
+      sleep 2
+    done
   else
+    sleep 2
     RESTARTED_PID=$(pgrep -f "openclaw.*node.*run" 2>/dev/null | head -1 || true)
   fi
 
   if [ -n "$RESTARTED_PID" ]; then
-    echo "INFO: OpenClaw runtime restarted itself (new PID $RESTARTED_PID); monitoring."
+    echo "INFO: OpenClaw runtime active (PID $RESTARTED_PID); monitoring."
     GW_PID="$RESTARTED_PID"
+    GW_IS_CHILD=false
+    continue
+  fi
+
+  # --- Final port guard ------------------------------------------------------
+  # Even if all detection methods missed the daemon during the loop above,
+  # the port may now be bound (the daemon finished initialising while we slept).
+  # Never launch a duplicate if the port is occupied.
+  if [ "$GATEWAY_MODE" != "remote" ] && \
+     ss -tlnp 2>/dev/null | grep -q ":${GATEWAY_INTERNAL_PORT} "; then
+    PORT_PID=$(ss -tlnp 2>/dev/null \
+      | grep ":${GATEWAY_INTERNAL_PORT} " \
+      | sed -n 's/.*pid=\([0-9]*\).*/\1/p' \
+      | head -1 || true)
+    echo "INFO: Gateway port ${GATEWAY_INTERNAL_PORT} occupied by PID ${PORT_PID:-unknown}; monitoring."
+    GW_PID="${PORT_PID:-$GW_PID}"
     GW_IS_CHILD=false
     continue
   fi
