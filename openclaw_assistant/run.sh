@@ -979,38 +979,61 @@ if command -v ss >/dev/null 2>&1 && ss -tlnp 2>/dev/null | grep -q ':48099 '; th
   echo "WARN: Port 48099 still in use after cleanup; nginx may fail to start"
 fi
 
-# Render nginx config from template.
-# The gateway token is NOT managed by the add-on; OpenClaw will generate/store it.
-# Read directly from config file — the CLI redacts secrets since v2026.2.22+.
-GW_TOKEN="$(python3 -c "
+# ------------------------------------------------------------------------------
+# render_landing: (re-)render the nginx config + landing page HTML.
+#
+# Called once before nginx starts (token may be empty on first boot/pre-onboard)
+# and again in the background after the gateway comes up so a freshly-generated
+# token is immediately reflected in the "Open Gateway Web UI" button.
+# nginx is sent SIGHUP to reload the updated config without restarting.
+# ------------------------------------------------------------------------------
+render_landing() {
+  local label="${1:-startup}"
+  # Read gateway token directly from openclaw.json (CLI redacts secrets v2026.2.22+)
+  local token
+  token="$(python3 -c "
 import json, os
 p = os.environ.get('OPENCLAW_CONFIG_PATH', '/config/.openclaw/openclaw.json')
 print(json.load(open(p)).get('gateway',{}).get('auth',{}).get('token',''), end='')
 " 2>/dev/null || true)"
 
-# Collect disk usage for landing page status card
-DISK_TOTAL="" DISK_USED="" DISK_AVAIL="" DISK_PCT=""
-if df -h /config >/dev/null 2>&1; then
-  DISK_TOTAL=$(df -h /config | awk 'NR==2{print $2}')
-  DISK_USED=$(df -h /config | awk 'NR==2{print $3}')
-  DISK_AVAIL=$(df -h /config | awk 'NR==2{print $4}')
-  DISK_PCT=$(df -h /config | awk 'NR==2{print $5}')
-  echo "INFO: Disk usage: ${DISK_USED}/${DISK_TOTAL} (${DISK_PCT} used, ${DISK_AVAIL} free)"
-  # Warn early if disk is getting full
-  DISK_PCT_NUM=${DISK_PCT//%/}
-  if [ "$DISK_PCT_NUM" -ge 90 ] 2>/dev/null; then
-    echo "WARNING: Disk is ${DISK_PCT} full! Add-on updates may fail. Run 'oc-cleanup' in the terminal."
-  elif [ "$DISK_PCT_NUM" -ge 75 ] 2>/dev/null; then
-    echo "NOTICE: Disk is ${DISK_PCT} full. Consider running 'oc-cleanup' in the terminal."
+  local disk_total="" disk_used="" disk_avail="" disk_pct=""
+  if df -h /config >/dev/null 2>&1; then
+    disk_total=$(df -h /config | awk 'NR==2{print $2}')
+    disk_used=$(df -h /config  | awk 'NR==2{print $3}')
+    disk_avail=$(df -h /config | awk 'NR==2{print $4}')
+    disk_pct=$(df -h /config   | awk 'NR==2{print $5}')
+    if [ "$label" = "startup" ]; then
+      echo "INFO: Disk usage: ${disk_used}/${disk_total} (${disk_pct} used, ${disk_avail} free)"
+      local pct_num=${disk_pct//%/}
+      if [ "$pct_num" -ge 90 ] 2>/dev/null; then
+        echo "WARNING: Disk is ${disk_pct} full! Add-on updates may fail. Run 'oc-cleanup' in the terminal."
+      elif [ "$pct_num" -ge 75 ] 2>/dev/null; then
+        echo "NOTICE: Disk is ${disk_pct} full. Consider running 'oc-cleanup' in the terminal."
+      fi
+    fi
   fi
-fi
 
-GW_PUBLIC_URL="$GW_PUBLIC_URL" GW_TOKEN="$GW_TOKEN" TERMINAL_PORT="$TERMINAL_PORT" \
-  ENABLE_HTTPS_PROXY="$ENABLE_HTTPS_PROXY" HTTPS_PROXY_PORT="$GATEWAY_PORT" \
-  GATEWAY_INTERNAL_PORT="$GATEWAY_INTERNAL_PORT" ACCESS_MODE="$ACCESS_MODE" \
-  DISK_TOTAL="$DISK_TOTAL" DISK_USED="$DISK_USED" DISK_AVAIL="$DISK_AVAIL" DISK_PCT="$DISK_PCT" \
-  NGINX_LOG_LEVEL="$NGINX_LOG_LEVEL" \
-  python3 /render_nginx.py
+  GW_PUBLIC_URL="$GW_PUBLIC_URL" GW_TOKEN="$token" TERMINAL_PORT="$TERMINAL_PORT" \
+    ENABLE_HTTPS_PROXY="$ENABLE_HTTPS_PROXY" HTTPS_PROXY_PORT="$GATEWAY_PORT" \
+    GATEWAY_INTERNAL_PORT="$GATEWAY_INTERNAL_PORT" ACCESS_MODE="$ACCESS_MODE" \
+    DISK_TOTAL="$disk_total" DISK_USED="$disk_used" DISK_AVAIL="$disk_avail" DISK_PCT="$disk_pct" \
+    NGINX_LOG_LEVEL="$NGINX_LOG_LEVEL" \
+    python3 /render_nginx.py
+
+  if [ "$label" != "startup" ]; then
+    # Signal nginx to reload config/landing HTML without dropping connections.
+    local nginx_pid
+    nginx_pid=$(cat "${NGINX_PID_FILE:-/var/run/openclaw-nginx.pid}" 2>/dev/null || true)
+    if [ -n "$nginx_pid" ] && kill -0 "$nginx_pid" 2>/dev/null; then
+      kill -HUP "$nginx_pid" 2>/dev/null || true
+      echo "INFO: Landing page re-rendered with gateway token (nginx reloaded)."
+    fi
+  fi
+}
+
+# Initial render (token may be absent if openclaw.json does not exist yet)
+render_landing startup
 
 echo "Starting ingress proxy (nginx) on :48099 ..."
 nginx -g 'daemon off;' &
@@ -1022,6 +1045,28 @@ if kill -0 "$NGINX_PID" 2>/dev/null; then
 else
   echo "WARN: nginx failed to start (PID $NGINX_PID exited); ingress UI may be unavailable"
 fi
+
+# If the token was not available at startup (first boot / pre-onboard), schedule
+# a background re-render so the "Open Gateway Web UI" button gets the real token
+# once openclaw onboard writes openclaw.json (typically within 30-90 s).
+(
+  CONFIG_PATH="${OPENCLAW_CONFIG_PATH:-/config/.openclaw/openclaw.json}"
+  for _i in $(seq 1 24); do
+    sleep 5
+    token=$(python3 -c "
+import json, os
+p='$CONFIG_PATH'
+try:
+    print(json.load(open(p)).get('gateway',{}).get('auth',{}).get('token',''), end='')
+except Exception:
+    pass
+" 2>/dev/null || true)
+    if [ -n "$token" ]; then
+      render_landing post-onboard
+      break
+    fi
+  done
+) &
 
 # Keep add-on alive even if gateway/node runtime restarts itself (e.g. during onboarding).
 # If runtime exits unexpectedly, restart it while nginx/ttyd stay up.
