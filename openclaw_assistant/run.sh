@@ -508,6 +508,17 @@ shutdown() {
 
 trap shutdown INT TERM
 
+# Auto-update OpenClaw if a newer version is available on npm
+echo "INFO: Checking for OpenClaw updates..."
+INSTALLED_VER=$(openclaw --version 2>/dev/null | grep -oE '[0-9]{4}\.[0-9]+\.[0-9]+' | head -1 || echo "")
+LATEST_VER=$(npm view openclaw version 2>/dev/null || echo "")
+if [ -n "$LATEST_VER" ] && [ "$INSTALLED_VER" != "$LATEST_VER" ]; then
+  echo "INFO: Updating OpenClaw $INSTALLED_VER → $LATEST_VER"
+  npm install -g openclaw@latest 2>&1 || echo "WARN: Update failed, continuing with installed version"
+else
+  echo "INFO: OpenClaw ${INSTALLED_VER:-unknown} is up to date"
+fi
+
 if ! command -v openclaw >/dev/null 2>&1; then
   echo "ERROR: openclaw is not installed."
   exit 1
@@ -770,6 +781,13 @@ elif [ "$AUTO_CONFIGURE_MCP" = "true" ] && [ -z "$HA_TOKEN" ]; then
 fi
 
 start_openclaw_runtime() {
+  # Auto-fix legacy config keys that block startup after version upgrades
+  # (e.g. tools.web.search → plugins.entries.<plugin>.config.webSearch)
+  if openclaw doctor 2>&1 | grep -q "Legacy config\|Config invalid"; then
+    echo "INFO: Detected legacy config keys — running 'openclaw doctor --fix'..."
+    openclaw doctor --fix 2>&1 || echo "WARN: 'openclaw doctor --fix' exited with non-zero status"
+  fi
+
   echo "Starting OpenClaw Assistant runtime (openclaw)..."
   if [ "$GATEWAY_MODE" = "remote" ]; then
     # Remote mode: do NOT start a local gateway service.
