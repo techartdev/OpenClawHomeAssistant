@@ -113,3 +113,6 @@ configuration:
   auto_configure_mcp:
     name: Auto-Configure MCP for Home Assistant
     description: "When ON and Home Assistant Token is set, automatically registers Home Assistant as an MCP server on each startup. This lets OpenClaw control HA entities, services, and automations via the Model Context Protocol. Disable only if you manage mcporter configuration manually."
+  auto_update:
+    name: Auto-Update OpenClaw on Startup
+    description: "When ON, automatically checks for and installs the latest OpenClaw version from npm each time the add-on starts. When OFF (default), OpenClaw is only updated when you rebuild the add-on."
