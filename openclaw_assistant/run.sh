@@ -516,6 +516,8 @@ if [ "$AUTO_UPDATE" = "true" ]; then
   LATEST_VER=$(npm view openclaw version 2>/dev/null || echo "")
   if [ -n "$LATEST_VER" ] && [ "$INSTALLED_VER" != "$LATEST_VER" ]; then
     echo "INFO: Updating OpenClaw $INSTALLED_VER → $LATEST_VER"
+    # Clean up leftover npm temp directories that cause ENOTEMPTY on rename
+    find "$(npm root -g)" -maxdepth 1 -name '.openclaw-*' -type d -exec rm -rf {} + 2>/dev/null || true
     npm install -g openclaw@latest 2>&1 || echo "WARN: Update failed, continuing with installed version"
   else
     echo "INFO: OpenClaw ${INSTALLED_VER:-unknown} is up to date"
