@@ -529,13 +529,25 @@ fi
 # Workaround: OpenClaw 2026.4.22+ can have a typebox ESM interop issue where
 # the bundled 'typebox' package does not re-export @sinclair/typebox correctly.
 # If the 'typebox' module is missing the 'Type' export, symlink it to @sinclair/typebox.
-OPENCLAW_GLOBAL_DIR="$(npm root -g)/openclaw"
-if [ -d "$OPENCLAW_GLOBAL_DIR/node_modules/typebox" ] && [ -d "$OPENCLAW_GLOBAL_DIR/node_modules/@sinclair/typebox" ]; then
-  TYPEBOX_MAIN="$OPENCLAW_GLOBAL_DIR/node_modules/typebox/dist/esm/index.mjs"
+# NOTE: npm global installs hoist deps to the global root, so check there first.
+NPM_GLOBAL_ROOT="$(npm root -g)"
+TYPEBOX_DIR="$NPM_GLOBAL_ROOT/typebox"
+SINCLAIR_DIR="$NPM_GLOBAL_ROOT/@sinclair/typebox"
+
+# Fallback: some npm versions keep deps under the package's own node_modules
+if [ ! -d "$TYPEBOX_DIR" ]; then
+  TYPEBOX_DIR="$NPM_GLOBAL_ROOT/openclaw/node_modules/typebox"
+fi
+if [ ! -d "$SINCLAIR_DIR" ]; then
+  SINCLAIR_DIR="$NPM_GLOBAL_ROOT/openclaw/node_modules/@sinclair/typebox"
+fi
+
+if [ -d "$TYPEBOX_DIR" ] && [ -d "$SINCLAIR_DIR" ]; then
+  TYPEBOX_MAIN="$TYPEBOX_DIR/dist/esm/index.mjs"
   if [ -f "$TYPEBOX_MAIN" ] && ! grep -q 'export.*Type' "$TYPEBOX_MAIN" 2>/dev/null; then
     echo "INFO: Applying typebox compatibility workaround (symlinking @sinclair/typebox to typebox)..."
-    rm -rf "$OPENCLAW_GLOBAL_DIR/node_modules/typebox"
-    ln -s "$OPENCLAW_GLOBAL_DIR/node_modules/@sinclair/typebox" "$OPENCLAW_GLOBAL_DIR/node_modules/typebox"
+    rm -rf "$TYPEBOX_DIR"
+    ln -s "$SINCLAIR_DIR" "$TYPEBOX_DIR"
   fi
 fi
 
