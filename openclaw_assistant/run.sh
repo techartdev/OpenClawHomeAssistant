@@ -526,36 +526,46 @@ else
   echo "INFO: Auto-update disabled — skipping OpenClaw update check"
 fi
 
-# Workaround: OpenClaw 2026.4.22+ bundles a broken 'typebox' package that
-# fails to re-export @sinclair/typebox. The bundled package exists but
-# @sinclair/typebox itself may not be installed. Install it and symlink.
+# Workaround: OpenClaw 2026.4.22+ bundles a broken 'typebox' npm package.
+# The bundled copy both misses the top-level `Type` export and fails to
+# resolve subpaths like `typebox/compile`. Reinstall a clean copy of the
+# SAME `typebox` package from npm (preferring the version openclaw pins)
+# and symlink it in place of the broken bundle. We no longer substitute
+# @sinclair/typebox — its subpath layout (./compiler, ./value) is
+# incompatible with what openclaw's deps (e.g. @mariozechner/pi-coding-agent)
+# import (./compile).
 NPM_GLOBAL_ROOT="$(npm root -g)"
 TYPEBOX_DIR="$NPM_GLOBAL_ROOT/openclaw/node_modules/typebox"
-SINCLAIR_DIR="$NPM_GLOBAL_ROOT/@sinclair/typebox"
+TYPEBOX_GLOBAL="$NPM_GLOBAL_ROOT/typebox"
+OPENCLAW_PKG_EARLY="$NPM_GLOBAL_ROOT/openclaw/package.json"
 
-if [ -d "$TYPEBOX_DIR" ]; then
-  # Discover the actual module entry point from package.json (module > main)
-  TYPEBOX_MAIN=""
-  TYPEBOX_PKG="$TYPEBOX_DIR/package.json"
-  if [ -f "$TYPEBOX_PKG" ]; then
-    TYPEBOX_MAIN=$(jq -r 'if .module then (.module | sub("^\\./"; "")) elif .main then (.main | sub("^\\./"; "")) else empty end' "$TYPEBOX_PKG")
-    if [ -n "$TYPEBOX_MAIN" ]; then
-      TYPEBOX_MAIN="$TYPEBOX_DIR/$TYPEBOX_MAIN"
+if [ -e "$TYPEBOX_DIR" ]; then
+  TYPEBOX_BROKEN=1
+  # Probe actual usage: both top-level Type export and the ./compile subpath
+  # must resolve. A clean exit means the package is healthy.
+  if (cd "$NPM_GLOBAL_ROOT/openclaw" && node --input-type=module -e \
+      "Promise.all([import('typebox').then(m=>{if(!m.Type)throw new Error('no Type')}),import('typebox/compile')]).then(()=>process.exit(0)).catch(()=>process.exit(1))" \
+      >/dev/null 2>&1); then
+    TYPEBOX_BROKEN=0
+  fi
+  if [ "$TYPEBOX_BROKEN" = "1" ]; then
+    echo "INFO: Bundled typebox is broken (missing Type export and/or ./compile subpath). Installing fresh copy..."
+    EXPECTED_TYPEBOX_VER=""
+    if [ -f "$OPENCLAW_PKG_EARLY" ]; then
+      EXPECTED_TYPEBOX_VER=$(jq -r '(.dependencies.typebox // .devDependencies.typebox // .optionalDependencies.typebox // empty)' "$OPENCLAW_PKG_EARLY" 2>/dev/null || true)
     fi
-  fi
-  # Fallback for legacy layouts
-  if [ -z "$TYPEBOX_MAIN" ] || [ ! -f "$TYPEBOX_MAIN" ]; then
-    TYPEBOX_MAIN="$TYPEBOX_DIR/dist/esm/index.mjs"
-  fi
-  if [ -f "$TYPEBOX_MAIN" ] && ! grep -q 'export.*Type' "$TYPEBOX_MAIN" 2>/dev/null; then
-    echo "INFO: Bundled typebox is missing Type export. Installing @sinclair/typebox..."
-    npm install -g @sinclair/typebox@latest 2>&1 || true
-    if [ -d "$SINCLAIR_DIR" ]; then
-      echo "INFO: Symlinking @sinclair/typebox in place of broken typebox..."
-      rm -rf "$TYPEBOX_DIR"
-      ln -s "$SINCLAIR_DIR" "$TYPEBOX_DIR"
+    if [ -n "$EXPECTED_TYPEBOX_VER" ]; then
+      npm install -g "typebox@${EXPECTED_TYPEBOX_VER}" 2>&1 || \
+        npm install -g "typebox@latest" 2>&1 || true
     else
-      echo "WARN: @sinclair/typebox installation failed; workaround incomplete"
+      npm install -g "typebox@latest" 2>&1 || true
+    fi
+    if [ -d "$TYPEBOX_GLOBAL" ]; then
+      echo "INFO: Symlinking fresh typebox in place of broken bundled version..."
+      rm -rf "$TYPEBOX_DIR"
+      ln -s "$TYPEBOX_GLOBAL" "$TYPEBOX_DIR"
+    else
+      echo "WARN: typebox installation failed; workaround incomplete"
     fi
   fi
 else

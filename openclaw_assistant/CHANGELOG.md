@@ -2,6 +2,11 @@
 
 All notable changes to the OpenClaw Assistant Home Assistant Add-on will be documented in this file.
 
+## [0.5.67.10] - 2026-04-24
+
+### Fixed
+- **Gateway startup failure: `typebox/compile` subpath not exported**: the previous workaround substituted `@sinclair/typebox` for the broken bundled `typebox`, but the two packages have different subpath layouts — `@sinclair/typebox` exposes `./compiler`, while `typebox` (1.x) exposes `./compile`, which `@mariozechner/pi-coding-agent` imports. `run.sh` now reinstalls the real `typebox` package fresh from npm (preferring openclaw's pinned version) and symlinks it in place. Detection now probes both the top-level `Type` export and the `./compile` subpath via an actual ESM `import('typebox/compile')`.
+
 ## [0.5.67.9] - 2026-04-24
 
 ### Fixed
