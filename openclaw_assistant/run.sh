@@ -534,7 +534,19 @@ TYPEBOX_DIR="$NPM_GLOBAL_ROOT/openclaw/node_modules/typebox"
 SINCLAIR_DIR="$NPM_GLOBAL_ROOT/@sinclair/typebox"
 
 if [ -d "$TYPEBOX_DIR" ]; then
-  TYPEBOX_MAIN="$TYPEBOX_DIR/dist/esm/index.mjs"
+  # Discover the actual module entry point from package.json (module > main)
+  TYPEBOX_MAIN=""
+  TYPEBOX_PKG="$TYPEBOX_DIR/package.json"
+  if [ -f "$TYPEBOX_PKG" ]; then
+    TYPEBOX_MAIN=$(jq -r 'if .module then (.module | sub("^\\./"; "")) elif .main then (.main | sub("^\\./"; "")) else empty end' "$TYPEBOX_PKG")
+    if [ -n "$TYPEBOX_MAIN" ]; then
+      TYPEBOX_MAIN="$TYPEBOX_DIR/$TYPEBOX_MAIN"
+    fi
+  fi
+  # Fallback for legacy layouts
+  if [ -z "$TYPEBOX_MAIN" ] || [ ! -f "$TYPEBOX_MAIN" ]; then
+    TYPEBOX_MAIN="$TYPEBOX_DIR/dist/esm/index.mjs"
+  fi
   if [ -f "$TYPEBOX_MAIN" ] && ! grep -q 'export.*Type' "$TYPEBOX_MAIN" 2>/dev/null; then
     echo "INFO: Bundled typebox is missing Type export. Installing @sinclair/typebox..."
     npm install -g @sinclair/typebox@latest 2>&1 || true
