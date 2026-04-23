@@ -526,38 +526,27 @@ else
   echo "INFO: Auto-update disabled — skipping OpenClaw update check"
 fi
 
-# Workaround: OpenClaw 2026.4.22+ can have a typebox ESM interop issue where
-# the bundled 'typebox' package does not re-export @sinclair/typebox correctly.
-# If the 'typebox' module is missing the 'Type' export, symlink it to @sinclair/typebox.
-# NOTE: npm global installs hoist deps to the global root, so check there first.
+# Workaround: OpenClaw 2026.4.22+ bundles a broken 'typebox' package that
+# fails to re-export @sinclair/typebox. The bundled package exists but
+# @sinclair/typebox itself may not be installed. Install it and symlink.
 NPM_GLOBAL_ROOT="$(npm root -g)"
-echo "DEBUG: npm root -g = $NPM_GLOBAL_ROOT"
-TYPEBOX_DIR="$NPM_GLOBAL_ROOT/typebox"
+TYPEBOX_DIR="$NPM_GLOBAL_ROOT/openclaw/node_modules/typebox"
 SINCLAIR_DIR="$NPM_GLOBAL_ROOT/@sinclair/typebox"
-echo "DEBUG: typebox dir (hoisted) = $TYPEBOX_DIR (exists=$([ -d "$TYPEBOX_DIR" ] && echo yes || echo no))"
-echo "DEBUG: @sinclair/typebox dir (hoisted) = $SINCLAIR_DIR (exists=$([ -d "$SINCLAIR_DIR" ] && echo yes || echo no))"
 
-# Fallback: some npm versions keep deps under the package's own node_modules
-if [ ! -d "$TYPEBOX_DIR" ]; then
-  TYPEBOX_DIR="$NPM_GLOBAL_ROOT/openclaw/node_modules/typebox"
-  echo "DEBUG: falling back to nested typebox dir = $TYPEBOX_DIR (exists=$([ -d "$TYPEBOX_DIR" ] && echo yes || echo no))"
-fi
-if [ ! -d "$SINCLAIR_DIR" ]; then
-  SINCLAIR_DIR="$NPM_GLOBAL_ROOT/openclaw/node_modules/@sinclair/typebox"
-  echo "DEBUG: falling back to nested @sinclair/typebox dir = $SINCLAIR_DIR (exists=$([ -d "$SINCLAIR_DIR" ] && echo yes || echo no))"
-fi
-
-if [ -d "$TYPEBOX_DIR" ] && [ -d "$SINCLAIR_DIR" ]; then
+if [ -d "$TYPEBOX_DIR" ]; then
   TYPEBOX_MAIN="$TYPEBOX_DIR/dist/esm/index.mjs"
-  echo "DEBUG: typebox main file = $TYPEBOX_MAIN (exists=$([ -f "$TYPEBOX_MAIN" ] && echo yes || echo no))"
   if [ -f "$TYPEBOX_MAIN" ] && ! grep -q 'export.*Type' "$TYPEBOX_MAIN" 2>/dev/null; then
-    echo "INFO: Applying typebox compatibility workaround (symlinking @sinclair/typebox to typebox)..."
-    rm -rf "$TYPEBOX_DIR"
-    ln -s "$SINCLAIR_DIR" "$TYPEBOX_DIR"
-  else
-    echo "DEBUG: typebox main either missing or already exports Type — no workaround needed"
+    echo "INFO: Bundled typebox is missing Type export. Installing @sinclair/typebox..."
+    npm install -g @sinclair/typebox@latest 2>&1 || true
+    if [ -d "$SINCLAIR_DIR" ]; then
+      echo "INFO: Symlinking @sinclair/typebox in place of broken typebox..."
+      rm -rf "$TYPEBOX_DIR"
+      ln -s "$SINCLAIR_DIR" "$TYPEBOX_DIR"
+    else
+      echo "WARN: @sinclair/typebox installation failed; workaround incomplete"
+    fi
   fi
-else
+fi
   echo "DEBUG: typebox or @sinclair/typebox directory not found — skipping workaround"
 fi
 
