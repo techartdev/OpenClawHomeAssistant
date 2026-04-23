@@ -519,23 +519,24 @@ if [ "$AUTO_UPDATE" = "true" ]; then
     # Clean up leftover npm temp directories that cause ENOTEMPTY on rename
     find "$(npm root -g)" -maxdepth 1 -name '.openclaw-*' -type d -exec rm -rf {} + 2>/dev/null || true
     npm install -g openclaw@latest 2>&1 || echo "WARN: Update failed, continuing with installed version"
-    # Workaround: OpenClaw 2026.4.22+ can have a typebox ESM interop issue where
-    # the bundled 'typebox' package does not re-export @sinclair/typebox correctly.
-    # If the 'typebox' module is missing the 'Type' export, symlink it to @sinclair/typebox.
-    OPENCLAW_GLOBAL_DIR="$(npm root -g)/openclaw"
-    if [ -d "$OPENCLAW_GLOBAL_DIR/node_modules/typebox" ] && [ -d "$OPENCLAW_GLOBAL_DIR/node_modules/@sinclair/typebox" ]; then
-      TYPEBOX_MAIN="$OPENCLAW_GLOBAL_DIR/node_modules/typebox/dist/esm/index.mjs"
-      if [ -f "$TYPEBOX_MAIN" ] && ! grep -q 'export.*Type' "$TYPEBOX_MAIN" 2>/dev/null; then
-        echo "INFO: Applying typebox compatibility workaround (symlinking @sinclair/typebox to typebox)..."
-        rm -rf "$OPENCLAW_GLOBAL_DIR/node_modules/typebox"
-        ln -s "$OPENCLAW_GLOBAL_DIR/node_modules/@sinclair/typebox" "$OPENCLAW_GLOBAL_DIR/node_modules/typebox"
-      fi
-    fi
   else
     echo "INFO: OpenClaw ${INSTALLED_VER:-unknown} is up to date"
   fi
 else
   echo "INFO: Auto-update disabled — skipping OpenClaw update check"
+fi
+
+# Workaround: OpenClaw 2026.4.22+ can have a typebox ESM interop issue where
+# the bundled 'typebox' package does not re-export @sinclair/typebox correctly.
+# If the 'typebox' module is missing the 'Type' export, symlink it to @sinclair/typebox.
+OPENCLAW_GLOBAL_DIR="$(npm root -g)/openclaw"
+if [ -d "$OPENCLAW_GLOBAL_DIR/node_modules/typebox" ] && [ -d "$OPENCLAW_GLOBAL_DIR/node_modules/@sinclair/typebox" ]; then
+  TYPEBOX_MAIN="$OPENCLAW_GLOBAL_DIR/node_modules/typebox/dist/esm/index.mjs"
+  if [ -f "$TYPEBOX_MAIN" ] && ! grep -q 'export.*Type' "$TYPEBOX_MAIN" 2>/dev/null; then
+    echo "INFO: Applying typebox compatibility workaround (symlinking @sinclair/typebox to typebox)..."
+    rm -rf "$OPENCLAW_GLOBAL_DIR/node_modules/typebox"
+    ln -s "$OPENCLAW_GLOBAL_DIR/node_modules/@sinclair/typebox" "$OPENCLAW_GLOBAL_DIR/node_modules/typebox"
+  fi
 fi
 
 if ! command -v openclaw >/dev/null 2>&1; then
