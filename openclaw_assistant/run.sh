@@ -558,8 +558,53 @@ if [ -d "$TYPEBOX_DIR" ]; then
       echo "WARN: @sinclair/typebox installation failed; workaround incomplete"
     fi
   fi
-fi
+else
   echo "DEBUG: typebox or @sinclair/typebox directory not found — skipping workaround"
+fi
+
+# Workaround: OpenClaw 2026.4.22+ may bundle a broken '@modelcontextprotocol/sdk'
+# package with an invalid package.json that Node rejects with
+# ERR_INVALID_PACKAGE_CONFIG, preventing the gateway from starting. Detect by
+# attempting the exact import openclaw performs; if it fails, install a fresh
+# copy globally and symlink it into openclaw's node_modules.
+MCP_SDK_DIR="$NPM_GLOBAL_ROOT/openclaw/node_modules/@modelcontextprotocol/sdk"
+MCP_SDK_GLOBAL="$NPM_GLOBAL_ROOT/@modelcontextprotocol/sdk"
+OPENCLAW_PKG="$NPM_GLOBAL_ROOT/openclaw/package.json"
+
+if [ -d "$MCP_SDK_DIR" ]; then
+  MCP_SDK_BROKEN=1
+  # Quick check: bundled package.json must be parseable JSON.
+  if jq -e . "$MCP_SDK_DIR/package.json" >/dev/null 2>&1; then
+    # Deeper check: run the exact ESM import from inside openclaw so Node resolves
+    # via openclaw's node_modules. A clean exit means the package is healthy.
+    if (cd "$NPM_GLOBAL_ROOT/openclaw" && node --input-type=module -e \
+        "import('@modelcontextprotocol/sdk/client/index.js').then(()=>process.exit(0)).catch(()=>process.exit(1))" \
+        >/dev/null 2>&1); then
+      MCP_SDK_BROKEN=0
+    fi
+  fi
+  if [ "$MCP_SDK_BROKEN" = "1" ]; then
+    echo "INFO: Bundled @modelcontextprotocol/sdk is broken. Installing fresh copy..."
+    # Prefer the version openclaw actually depends on; fall back to latest.
+    EXPECTED_MCP_VER=""
+    if [ -f "$OPENCLAW_PKG" ]; then
+      EXPECTED_MCP_VER=$(jq -r '(.dependencies["@modelcontextprotocol/sdk"] // .devDependencies["@modelcontextprotocol/sdk"] // .optionalDependencies["@modelcontextprotocol/sdk"] // empty)' "$OPENCLAW_PKG" 2>/dev/null || true)
+    fi
+    if [ -n "$EXPECTED_MCP_VER" ]; then
+      npm install -g "@modelcontextprotocol/sdk@${EXPECTED_MCP_VER}" 2>&1 || \
+        npm install -g "@modelcontextprotocol/sdk@latest" 2>&1 || true
+    else
+      npm install -g "@modelcontextprotocol/sdk@latest" 2>&1 || true
+    fi
+    if [ -d "$MCP_SDK_GLOBAL" ]; then
+      echo "INFO: Symlinking @modelcontextprotocol/sdk in place of broken bundled version..."
+      rm -rf "$MCP_SDK_DIR"
+      mkdir -p "$(dirname "$MCP_SDK_DIR")"
+      ln -s "$MCP_SDK_GLOBAL" "$MCP_SDK_DIR"
+    else
+      echo "WARN: @modelcontextprotocol/sdk installation failed; workaround incomplete"
+    fi
+  fi
 fi
 
 if ! command -v openclaw >/dev/null 2>&1; then

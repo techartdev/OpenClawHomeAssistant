@@ -2,6 +2,11 @@
 
 All notable changes to the OpenClaw Assistant Home Assistant Add-on will be documented in this file.
 
+## [0.5.67.9] - 2026-04-24
+
+### Fixed
+- **Gateway startup failure on OpenClaw 2026.4.22+ due to broken bundled `@modelcontextprotocol/sdk`**: Node rejects the bundled package with `ERR_INVALID_PACKAGE_CONFIG` when resolving `@modelcontextprotocol/sdk/client/index.js`, crashing the gateway. `run.sh` now detects the failure by attempting the exact ESM import inside openclaw's install, then installs a fresh `@modelcontextprotocol/sdk` globally (preferring the version pinned in openclaw's `package.json`) and symlinks it over the broken bundled copy. Mirrors the existing `typebox` workaround.
+
 ## [0.5.66] - 2026-04-04
 
 ### Fixed
