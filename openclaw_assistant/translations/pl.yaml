@@ -113,3 +113,6 @@ configuration:
   auto_configure_mcp:
     name: Automatyczna konfiguracja MCP dla Home Assistant
     description: "Gdy WŁĄCZONE i token Home Assistant jest ustawiony, automatycznie rejestruje Home Assistant jako serwer MCP przy każdym starcie. Pozwala to OpenClaw kontrolować urządzenia HA, usługi i automatyzacje przez Model Context Protocol. Wyłącz tylko jeśli zarządzasz konfiguracją mcporter ręcznie."
+  auto_update:
+    name: Automatyczna aktualizacja OpenClaw przy starcie
+    description: "Gdy WŁĄCZONE, automatycznie sprawdza i instaluje najnowszą wersję OpenClaw z npm przy każdym uruchomieniu dodatku. Gdy WYŁĄCZONE (domyślnie), OpenClaw jest aktualizowany tylko przy przebudowie dodatku."

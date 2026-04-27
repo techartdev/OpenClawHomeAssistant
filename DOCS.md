@@ -313,7 +313,9 @@ To provide the SSH key: place the private key file in the add-on config director
 | Option | Type | Default | Description |
 |---|---|---|---|
 | `clean_session_locks_on_start` | bool | `true` | Remove stale session lock files on startup (safe — only removes locks when gateway isn't running) |
-| `clean_session_locks_on_exit` | bool | `true` | Remove session lock files on clean shutdown || `auto_configure_mcp` | bool | `false` | Auto-register Home Assistant as an MCP server on startup (requires `homeassistant_token`) |
+| `clean_session_locks_on_exit` | bool | `true` | Remove session lock files on clean shutdown |
+| `auto_configure_mcp` | bool | `false` | Auto-register Home Assistant as an MCP server on startup (requires `homeassistant_token`) |
+| `auto_update` | bool | `false` | Check npm for the latest OpenClaw version on add-on startup and install it when newer. Disabled by default; image rebuild updates remain the recommended path. |
 ---
 
 ## 6. Use Case Guides
@@ -742,6 +744,8 @@ Home Assistant checks for add-on updates automatically. When an update is availa
 - Everything under `/config/` is preserved (config, skills, workspace, keys)
 - Homebrew and brew-installed packages are preserved (synced to `/config/.linuxbrew/`)
 - The OpenClaw binary is updated to the version in the new image
+
+Optional: set `auto_update` to `true` to let the add-on check npm on startup and install a newer OpenClaw package when available. Leave it `false` for deterministic image-based updates.
 
 ### Checking your version
 
