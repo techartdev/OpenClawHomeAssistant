@@ -138,6 +138,10 @@ options:
   # MCP server in OpenClaw so the AI can control Home Assistant entities/services.
   auto_configure_mcp: false
 
+  # Automatically check for and install OpenClaw updates on add-on startup.
+  # Default: false (manual updates via add-on rebuild are recommended).
+  auto_update: false
+
 
 schema:
   timezone: str
@@ -169,3 +173,4 @@ schema:
       value: str
   nginx_log_level: list(full|minimal)?
   auto_configure_mcp: bool?
+  auto_update: bool?

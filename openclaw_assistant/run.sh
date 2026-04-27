@@ -59,6 +59,7 @@ FORCE_IPV4_DNS=$(jq -r '.force_ipv4_dns // true' "$OPTIONS_FILE")
 ACCESS_MODE=$(jq -r '.access_mode // "custom"' "$OPTIONS_FILE")
 NGINX_LOG_LEVEL=$(jq -r '.nginx_log_level // "minimal"' "$OPTIONS_FILE")
 AUTO_CONFIGURE_MCP=$(jq -r '.auto_configure_mcp // false' "$OPTIONS_FILE")
+AUTO_UPDATE=$(jq -r '.auto_update // false' "$OPTIONS_FILE")
 GW_ENV_VARS_TYPE=$(jq -r 'if .gateway_env_vars == null then "null" else (.gateway_env_vars | type) end' "$OPTIONS_FILE")
 GW_ENV_VARS_RAW=$(jq -r '.gateway_env_vars // empty' "$OPTIONS_FILE")
 GW_ENV_VARS_JSON=$(jq -c '.gateway_env_vars // []' "$OPTIONS_FILE")
@@ -507,6 +508,23 @@ shutdown() {
 }
 
 trap shutdown INT TERM
+
+# Auto-update OpenClaw if enabled in add-on options and a newer version is available
+if [ "$AUTO_UPDATE" = "true" ]; then
+  echo "INFO: Auto-update enabled — checking for OpenClaw updates..."
+  INSTALLED_VER=$(openclaw --version 2>/dev/null | grep -oE '[0-9]{4}\.[0-9]+\.[0-9]+' | head -1 || echo "")
+  LATEST_VER=$(npm view openclaw version 2>/dev/null || echo "")
+  if [ -n "$LATEST_VER" ] && [ "$INSTALLED_VER" != "$LATEST_VER" ]; then
+    echo "INFO: Updating OpenClaw $INSTALLED_VER → $LATEST_VER"
+    # Clean up leftover npm temp directories that cause ENOTEMPTY on rename.
+    find "$(npm root -g)" -maxdepth 1 -name '.openclaw-*' -type d -exec rm -rf {} + 2>/dev/null || true
+    npm install -g openclaw@latest 2>&1 || echo "WARN: Update failed, continuing with installed version"
+  else
+    echo "INFO: OpenClaw ${INSTALLED_VER:-unknown} is up to date"
+  fi
+else
+  echo "INFO: Auto-update disabled — skipping OpenClaw update check"
+fi
 
 if ! command -v openclaw >/dev/null 2>&1; then
   echo "ERROR: openclaw is not installed."

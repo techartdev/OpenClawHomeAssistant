@@ -2,6 +2,11 @@
 
 All notable changes to the OpenClaw Assistant Home Assistant Add-on will be documented in this file.
 
+## Unreleased
+
+### Added
+- New `auto_update` add-on option. When enabled, startup checks npm for a newer OpenClaw package, removes stale `.openclaw-*` npm temp directories, and installs the latest OpenClaw version. The option defaults to `false`.
+
 ## [0.5.66] - 2026-04-04
 
 ### Fixed
