@@ -117,7 +117,7 @@ USER root
 # Bundle node-llama-cpp in the image so the default local memory/embeddings
 # provider works in HAOS without requiring manual npm installs in /usr/lib.
 RUN npm config set fund false && npm config set audit false \
-    && npm install -g openclaw@2026.6.10 node-llama-cpp@3.18.1
+    && npm install -g openclaw@2026.6.11 node-llama-cpp@3.18.1
 
 # Shell aliases and color options for interactive use
 RUN tee -a /etc/bash.bashrc <<'EOF'
