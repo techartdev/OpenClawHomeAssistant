@@ -44,7 +44,7 @@ This repository contains a Home Assistant add-on that runs **OpenClaw** inside *
 
 ## Star History
 
-[![Star History Chart](https://api.star-history.com/svg?repos=techartdev/OpenClawHomeAssistant&type=date&legend=top-left)](https://www.star-history.com/#techartdev/OpenClawHomeAssistant&type=date&legend=top-left)
+[![Star History Chart](https://star-history.dera.page/svg?repos=techartdev/OpenClawHomeAssistant&type=date&legend=top-left)](https://star-history.dera.page/#techartdev/OpenClawHomeAssistant&type=date&legend=top-left)
 
 ## Support / Donations
 
