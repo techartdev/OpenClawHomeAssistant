@@ -121,7 +121,7 @@ USER root
 # Bundle mcporter so Home Assistant MCP auto-configuration works out of the box.
 # The image now ships Node 24, so use the current mcporter line.
 RUN npm config set fund false && npm config set audit false \
-    && npm install -g openclaw@2026.7.1-2 node-llama-cpp@3.18.1 mcporter@0.12.3
+    && npm install -g openclaw@2026.7.1-2-2 node-llama-cpp@3.18.1 mcporter@0.12.3
 
 # Shell aliases and color options for interactive use
 RUN tee -a /etc/bash.bashrc <<'EOF'
