@@ -13,6 +13,14 @@ if [ ! -f "$OPTIONS_FILE" ]; then
   exit 1
 fi
 
+read_json_bool() {
+  local key="$1"
+  local default_bool="$2"
+  jq -r --arg key "$key" --argjson default_bool "$default_bool" '
+    if .[$key] == null then $default_bool else .[$key] end
+  ' "$OPTIONS_FILE"
+}
+
 # ------------------------------------------------------------------------------
 # Read add-on options (only add-on-specific knobs; OpenClaw is configured via onboarding)
 # ------------------------------------------------------------------------------
@@ -21,7 +29,7 @@ TZNAME=$(jq -r '.timezone // "Europe/Sofia"' "$OPTIONS_FILE")
 GW_PUBLIC_URL=$(jq -r '.gateway_public_url // empty' "$OPTIONS_FILE")
 HA_TOKEN=$(jq -r '.homeassistant_token // empty' "$OPTIONS_FILE")
 ADDON_HTTP_PROXY=$(jq -r '.http_proxy // empty' "$OPTIONS_FILE")
-ENABLE_TERMINAL=$(jq -r '.enable_terminal // true' "$OPTIONS_FILE")
+ENABLE_TERMINAL=$(read_json_bool enable_terminal true)
 TERMINAL_PORT_RAW=$(jq -r '.terminal_port // 7681' "$OPTIONS_FILE")
 
 # SECURITY: Validate TERMINAL_PORT to prevent nginx config injection
@@ -42,25 +50,25 @@ ROUTER_USER=$(jq -r '.router_ssh_user // empty' "$OPTIONS_FILE")
 ROUTER_KEY=$(jq -r '.router_ssh_key_path // "/data/keys/router_ssh"' "$OPTIONS_FILE")
 
 # Optional: allow disabling lock cleanup if you ever need to debug
-CLEAN_LOCKS_ON_START=$(jq -r '.clean_session_locks_on_start // true' "$OPTIONS_FILE")
-CLEAN_LOCKS_ON_EXIT=$(jq -r '.clean_session_locks_on_exit // true' "$OPTIONS_FILE")
-PERSIST_NODE_GLOBAL=$(jq -r '.persist_node_global // false' "$OPTIONS_FILE")
-PERSIST_BREW_TOOLS=$(jq -r '.persist_brew_tools // false' "$OPTIONS_FILE")
+CLEAN_LOCKS_ON_START=$(read_json_bool clean_session_locks_on_start true)
+CLEAN_LOCKS_ON_EXIT=$(read_json_bool clean_session_locks_on_exit true)
+PERSIST_NODE_GLOBAL=$(read_json_bool persist_node_global false)
+PERSIST_BREW_TOOLS=$(read_json_bool persist_brew_tools false)
 
 # Gateway configuration
 GATEWAY_MODE=$(jq -r '.gateway_mode // "local"' "$OPTIONS_FILE")
 GATEWAY_REMOTE_URL=$(jq -r '.gateway_remote_url // empty' "$OPTIONS_FILE")
 GATEWAY_BIND_MODE=$(jq -r '.gateway_bind_mode // "loopback"' "$OPTIONS_FILE")
 GATEWAY_PORT=$(jq -r '.gateway_port // 18789' "$OPTIONS_FILE")
-ENABLE_OPENAI_API=$(jq -r '.enable_openai_api // false' "$OPTIONS_FILE")
+ENABLE_OPENAI_API=$(read_json_bool enable_openai_api false)
 GATEWAY_AUTH_MODE=$(jq -r '.gateway_auth_mode // "token"' "$OPTIONS_FILE")
 GATEWAY_TRUSTED_PROXIES=$(jq -r '.gateway_trusted_proxies // empty' "$OPTIONS_FILE")
 GATEWAY_ADDITIONAL_ALLOWED_ORIGINS=$(jq -r '.gateway_additional_allowed_origins // empty' "$OPTIONS_FILE")
-CONTROLUI_DISABLE_DEVICE_AUTH=$(jq -r '.controlui_disable_device_auth // true' "$OPTIONS_FILE")
-FORCE_IPV4_DNS=$(jq -r '.force_ipv4_dns // true' "$OPTIONS_FILE")
+CONTROLUI_DISABLE_DEVICE_AUTH=$(read_json_bool controlui_disable_device_auth true)
+FORCE_IPV4_DNS=$(read_json_bool force_ipv4_dns true)
 ACCESS_MODE=$(jq -r '.access_mode // "custom"' "$OPTIONS_FILE")
 NGINX_LOG_LEVEL=$(jq -r '.nginx_log_level // "minimal"' "$OPTIONS_FILE")
-AUTO_CONFIGURE_MCP=$(jq -r '.auto_configure_mcp // false' "$OPTIONS_FILE")
+AUTO_CONFIGURE_MCP=$(read_json_bool auto_configure_mcp false)
 GW_ENV_VARS_TYPE=$(jq -r 'if .gateway_env_vars == null then "null" else (.gateway_env_vars | type) end' "$OPTIONS_FILE")
 GW_ENV_VARS_RAW=$(jq -r '.gateway_env_vars // empty' "$OPTIONS_FILE")
 GW_ENV_VARS_JSON=$(jq -c '.gateway_env_vars // []' "$OPTIONS_FILE")
