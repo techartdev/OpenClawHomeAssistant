@@ -16,7 +16,9 @@ All notable changes to the OpenClaw Assistant Home Assistant Add-on will be docu
 
 ### Changed
 
-- Bundle OpenClaw `2026.9.6` (add-on version `0.5.93`) for the next release.
+- Bundle OpenClaw `2026.9.9` (add-on version `0.5.94`), including the
+  scheduled-job isolation, update recovery, and container startup fixes from
+  OpenClaw `2026.9.8` and `2026.9.9`.
 
 ### Fixed
 
