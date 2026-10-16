@@ -592,6 +592,15 @@ prune_upgrade_backups() {
   done
 }
 
+prune_incomplete_upgrade_backups() {
+  local stale
+  mapfile -t stale < <(find "$OPENCLAW_UPGRADE_BACKUP_DIR" -maxdepth 1 -type f -name 'openclaw-state-*.tar.gz.tmp' -printf '%f\n' 2>/dev/null)
+  for stale in "${stale[@]}"; do
+    rm -f "${OPENCLAW_UPGRADE_BACKUP_DIR}/${stale}" || \
+      echo "WARN: Could not prune incomplete upgrade backup ${stale}."
+  done
+}
+
 backup_state_before_upgrade() {
   local version marker stamp archive temporary
   version="$(openclaw_runtime_version)"
@@ -609,6 +618,7 @@ backup_state_before_upgrade() {
     echo "ERROR: Could not create the upgrade-backup directory."
     return 1
   fi
+  prune_incomplete_upgrade_backups
   marker="${OPENCLAW_UPGRADE_BACKUP_DIR}/started-${version}"
   if [ -f "$marker" ]; then
     echo "INFO: Upgrade-state backup already recorded for OpenClaw ${version}."

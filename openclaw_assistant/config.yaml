@@ -1,5 +1,5 @@
 name: OpenClaw Assistant
-version: "0.5.95"
+version: "0.5.96"
 slug: openclaw_assistant
 description: Run OpenClaw Assistant (OpenClaw-compatible) as a Home Assistant add-on.
 url: https://github.com/techartdev/OpenClawHomeAssistant
@@ -38,6 +38,7 @@ backup_exclude:
   - ".cache"          # generic tool caches (Chromium, build artifacts)
   - "__pycache__"     # Python bytecode, at any depth
   - "*.jsonl.lock"    # stale session locks; never useful to restore
+  - ".openclaw/upgrade-backups/*.tar.gz.tmp" # incomplete rollback archives; never useful to restore
 
 map:
   - addon_config:rw
