@@ -26,6 +26,13 @@ All notable changes to the OpenClaw Assistant Home Assistant Add-on will be docu
 
 ### Fixed
 
+- **Gateway stays down after a crash**: after the gateway exited (for example
+  an out-of-memory kill), the supervisor could adopt any process with
+  `openclaw` in its command line (agent CLI children, gateway helper workers,
+  scripts under `/config/.openclaw/`) as the restarted gateway and wait for it
+  instead of relaunching. It now only adopts the gateway entrypoint itself, and
+  drops an adopted process that does not bind the gateway port within 300
+  seconds, so a wrong match delays the relaunch instead of blocking it (#194).
 - Restrict the Home Assistant Ingress backend on port `48099` to loopback and
   the Supervisor proxy, preventing direct LAN access from bypassing Ingress
   authentication and exposing the terminal.

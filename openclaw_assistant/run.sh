@@ -1287,38 +1287,80 @@ stop_gw_relay() {
 # Three tiers, tried in order of reliability:
 #   1. Port ownership via `ss -tlnp` — authoritative, but only works once
 #      the daemon has bound the port (can take 20+ s on Pi hardware).
-#   2. Process title via `pgrep -f openclaw-gateway` — works after Node.js
-#      sets process.title, which also happens late during init.
-#   3. /proc cmdline scan — catches the daemon IMMEDIATELY after fork,
-#      before title or port bind, by matching "openclaw" in the cmdline.
-#      Excludes known PIDs (nginx, ttyd, relay, our shell, old GW_PID).
+#   2. Process title via `pgrep -fx openclaw-gateway` — works after Node.js
+#      sets process.title, which also happens late during init. The match is
+#      exact: `openclaw gateway status` calls and shells that merely contain
+#      the string must not count (issue #194).
+#   3. /proc scan — catches the daemon IMMEDIATELY after fork, before title
+#      or port bind. Only a process whose argv IS the gateway entrypoint
+#      (`[node] .../openclaw gateway run ...`) qualifies; any other process
+#      that mentions "openclaw" (agent CLI children, scripts under
+#      /config/.openclaw, Chromium profiles) is ignored (issue #194).
+#      Excludes known PIDs (nginx, ttyd, relay, our shell, old GW_PID) and
+#      PIDs already rejected for never binding the gateway port.
+#
+# An adoption from tier 2 or 3 is provisional: the supervisor loop drops it
+# if the PID does not own the gateway port within GW_ADOPT_PORT_DEADLINE.
 #
 # Returns the PID on stdout and exit 0, or exits with code 1 if nothing found.
-find_gateway_daemon_pid() {
-  local pid=""
-
-  # Tier 1: port ownership (authoritative once port is bound)
-  pid=$(ss -tlnp 2>/dev/null \
+gateway_port_owner_pid() {
+  ss -tlnp 2>/dev/null \
     | grep ":${GATEWAY_INTERNAL_PORT} " \
     | sed -n 's/.*pid=\([0-9]*\).*/\1/p' \
-    | head -1)
+    | head -1
+}
+
+# True if PID's argv is the gateway itself: the process title
+# `openclaw-gateway`, or `[node] <path>/openclaw[.mjs|.js] gateway run [...]`
+# before the title is set.
+is_gateway_entrypoint_pid() {
+  local pid="$1" arg exe i=0
+  local -a argv=()
+  [ -r "/proc/${pid}/cmdline" ] || return 1
+  # The title is NUL-padded in /proc, so skip empty fields.
+  while IFS= read -r -d '' arg; do
+    [ -n "$arg" ] && argv+=("$arg")
+  done < "/proc/${pid}/cmdline" 2>/dev/null || true
+  [ "${#argv[@]}" -gt 0 ] || return 1
+
+  if [ "${#argv[@]}" -eq 1 ] && [ "${argv[0]}" = "openclaw-gateway" ]; then
+    return 0
+  fi
+
+  exe="${argv[0]##*/}"
+  case "$exe" in
+    node|nodejs) i=1 ;;
+  esac
+  [ "${#argv[@]}" -ge $((i + 3)) ] || return 1
+  case "${argv[$i]##*/}" in
+    openclaw|openclaw.mjs|openclaw.js) ;;
+    *) return 1 ;;
+  esac
+  [ "${argv[$((i + 1))]}" = "gateway" ] && [ "${argv[$((i + 2))]}" = "run" ]
+}
+
+find_gateway_daemon_pid() {
+  local pid=""
+  local known=" ${NGINX_PID:-0} ${TTYD_PID:-0} ${GW_RELAY_PID:-0} ${GW_PID:-0} $$ ${GW_REJECTED_PIDS:-} "
+
+  # Tier 1: port ownership (authoritative once port is bound)
+  pid=$(gateway_port_owner_pid)
   [ -n "$pid" ] && { echo "$pid"; return 0; }
 
-  # Tier 2: process title (after Node sets process.title)
-  pid=$(pgrep -f "openclaw-gateway" 2>/dev/null | head -1)
-  [ -n "$pid" ] && { echo "$pid"; return 0; }
+  # Tier 2: exact process title (after Node sets process.title)
+  for pid in $(pgrep -fx "openclaw-gateway" 2>/dev/null || true); do
+    case "$known" in *" $pid "*) continue ;; esac
+    echo "$pid"
+    return 0
+  done
 
-  # Tier 3: scan /proc for any openclaw process we don't already know about.
-  # The daemon's cmdline (e.g. node /usr/.../openclaw/...) contains "openclaw"
-  # from the moment it is forked, even before process.title is set.
-  local known=" ${NGINX_PID:-0} ${TTYD_PID:-0} ${GW_RELAY_PID:-0} ${GW_PID:-0} $$ "
+  # Tier 3: scan /proc for a freshly forked gateway entrypoint.
   local f cand
   for f in /proc/[0-9]*/cmdline; do
-    [ -r "$f" ] || continue
-    if tr '\0' ' ' < "$f" 2>/dev/null | grep -q "openclaw"; then
-      cand="${f#/proc/}"
-      cand="${cand%%/*}"
-      case "$known" in *" $cand "*) continue ;; esac
+    cand="${f#/proc/}"
+    cand="${cand%%/*}"
+    case "$known" in *" $cand "*) continue ;; esac
+    if is_gateway_entrypoint_pid "$cand"; then
       echo "$cand"
       return 0
     fi
@@ -1544,6 +1586,14 @@ fi
 #        guard to prevent launching a duplicate.
 GW_IS_CHILD=true   # true only when GW_PID was started by us (can use `wait`)
 
+# A PID adopted from find_gateway_daemon_pid tier 2 or 3 must own the gateway
+# port within this many seconds, otherwise it is not the gateway and the
+# supervisor relaunches (issue #194). A cold start of OpenClaw 2026.10.x on a
+# Raspberry Pi 4 took ~260 s to bind the port, so stay well above that.
+GW_ADOPT_PORT_DEADLINE=300
+# PIDs dropped for never binding the port; never adopted again.
+GW_REJECTED_PIDS=""
+
 # Consecutive failed starts, used for restart backoff (reset once a boot sticks).
 GW_FAIL_STREAK=0
 # `openclaw doctor --fix` is attempted at most once per add-on start.
@@ -1590,9 +1640,30 @@ while true; do
     wait "${GW_PID}" 2>/dev/null || GW_EXIT_CODE=$?
   else
     # GW_PID is NOT our child (re-tracked after a self-restart).
-    # Poll with kill -0 until it exits.
+    # Poll with kill -0 until it exits. Until the PID is seen owning the
+    # gateway port the adoption is provisional: past GW_ADOPT_PORT_DEADLINE
+    # it is dropped, so a mis-adopted process delays a relaunch instead of
+    # blocking it for as long as that process lives (issue #194).
+    GW_PORT_CONFIRMED=false
+    if [ "$GATEWAY_MODE" = "remote" ]; then
+      GW_PORT_CONFIRMED=true
+    fi
     while kill -0 "$GW_PID" 2>/dev/null; do
       if [ "$SHUTTING_DOWN" = "true" ]; then break 2; fi
+      if [ "$GW_PORT_CONFIRMED" != "true" ]; then
+        GW_PORT_OWNER=$(gateway_port_owner_pid || true)
+        if [ -n "$GW_PORT_OWNER" ]; then
+          if [ "$GW_PORT_OWNER" != "$GW_PID" ]; then
+            echo "INFO: Gateway port ${GATEWAY_INTERNAL_PORT} is owned by PID ${GW_PORT_OWNER}, not ${GW_PID}; monitoring ${GW_PORT_OWNER}."
+            GW_PID="$GW_PORT_OWNER"
+          fi
+          GW_PORT_CONFIRMED=true
+        elif [ $((SECONDS - GW_START_SECONDS)) -ge "$GW_ADOPT_PORT_DEADLINE" ]; then
+          echo "WARN: PID ${GW_PID} did not bind gateway port ${GATEWAY_INTERNAL_PORT} within ${GW_ADOPT_PORT_DEADLINE}s; it is not the gateway. Relaunching."
+          GW_REJECTED_PIDS="${GW_REJECTED_PIDS} ${GW_PID}"
+          break
+        fi
+      fi
       sleep 5
     done
     GW_EXIT_CODE=0
