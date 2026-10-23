@@ -4,6 +4,11 @@ All notable changes to the OpenClaw Assistant Home Assistant Add-on will be docu
 
 ## [Unreleased]
 
+### Fixed
+
+- Remove interrupted pre-upgrade archive files on startup and exclude in-progress
+  temporary archives from Home Assistant backups.
+
 ### Added
 
 - **Safe OpenClaw database upgrades**: before the add-on starts an OpenClaw

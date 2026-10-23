@@ -38,6 +38,7 @@ backup_exclude:
   - ".cache"          # generic tool caches (Chromium, build artifacts)
   - "__pycache__"     # Python bytecode, at any depth
   - "*.jsonl.lock"    # stale session locks; never useful to restore
+  - ".openclaw/upgrade-backups/*.tar.gz.tmp" # incomplete rollback archives; never useful to restore
 
 map:
   - addon_config:rw
