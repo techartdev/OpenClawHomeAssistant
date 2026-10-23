@@ -35,7 +35,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 
 # Install Node.js 24 LTS from NodeSource.
-# OpenClaw supports Node >=24.15.0, and this keeps the image compatible with the
+# OpenClaw 2026.10.6 requires Node >=24.22.1, and this keeps the image compatible with the
 # current mcporter releases without relying on an older pinned CLI line.
 # Use explicit keyring + apt source instead of setup_24.x pipe script for deterministic builds.
 RUN mkdir -p /etc/apt/keyrings \
@@ -48,7 +48,7 @@ RUN mkdir -p /etc/apt/keyrings \
     && apt-get install -y --no-install-recommends nodejs \
     && NODE_VERSION="$(node -v)" \
     && echo "$NODE_VERSION" \
-    && echo "$NODE_VERSION" | grep -E '^v24\.' \
+    && node -e 'const [major, minor, patch] = process.versions.node.split(".").map(Number); if (major !== 24 || minor < 22 || (minor === 22 && patch < 1)) process.exit(1)' \
     && rm -f /etc/apt/sources.list.d/nodesource.list /etc/apt/keyrings/nodesource.gpg \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
@@ -121,7 +121,7 @@ USER root
 # Bundle mcporter so Home Assistant MCP auto-configuration works out of the box.
 # The image now ships Node 24, so use the current mcporter line.
 RUN npm config set fund false && npm config set audit false \
-    && npm install -g openclaw@2026.10.4 node-llama-cpp@3.18.1 mcporter@0.12.3
+    && npm install -g openclaw@2026.10.6 node-llama-cpp@3.18.1 mcporter@0.12.3
 
 # Shell aliases and color options for interactive use
 RUN tee -a /etc/bash.bashrc <<'EOF'

@@ -16,6 +16,11 @@ All notable changes to the OpenClaw Assistant Home Assistant Add-on will be docu
 
 ### Changed
 
+- Bundle OpenClaw `2026.10.6` (add-on version `0.5.96`), a focused
+  reliability and security update for safer upgrades, state recovery,
+  delivery continuity, provider/tool resilience, and channel stability. This
+  release requires patched Node.js `24.22.1+`; the add-on image installs and
+  now explicitly verifies that runtime before installing OpenClaw.
 - Bundle OpenClaw `2026.10.4` (add-on version `0.5.95`), combining the
   installed-skill discovery and backup improvements from `2026.10.1` with the
   update recovery, conversation continuity, messaging, provider, browser and
