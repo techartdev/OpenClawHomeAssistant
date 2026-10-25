@@ -592,8 +592,51 @@ prune_upgrade_backups() {
   done
 }
 
+# The Supervisor watchdog probes tcp://[HOST]:48099, which nginx only opens much
+# later in this script. On a Raspberry Pi the archive below takes 10-20 minutes,
+# so the watchdog restarted the add-on mid-archive, over and over, and every
+# attempt left another .tar.gz.tmp behind (#196). While the archive runs, a tiny
+# placeholder holds the port and answers 503, so the watchdog sees a live add-on.
+UPGRADE_PLACEHOLDER_PID=""
+
+start_upgrade_placeholder() {
+  if command -v ss >/dev/null 2>&1 && ss -tln 2>/dev/null | grep -q ':48099 '; then
+    return 0
+  fi
+  python3 -c '
+import socket
+body = b"Saving a pre-upgrade state backup. Please wait.\n"
+reply = (b"HTTP/1.1 503 Service Unavailable\r\nContent-Type: text/plain\r\n"
+         b"Retry-After: 60\r\nConnection: close\r\nContent-Length: "
+         + str(len(body)).encode() + b"\r\n\r\n" + body)
+s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+s.bind(("0.0.0.0", 48099))
+s.listen(16)
+while True:
+    c, _ = s.accept()
+    try:
+        c.settimeout(2)
+        c.recv(1024)
+        c.sendall(reply)
+    except OSError:
+        pass
+    finally:
+        c.close()
+' >/dev/null 2>&1 &
+  UPGRADE_PLACEHOLDER_PID=$!
+}
+
+stop_upgrade_placeholder() {
+  if [ -n "$UPGRADE_PLACEHOLDER_PID" ]; then
+    kill "$UPGRADE_PLACEHOLDER_PID" >/dev/null 2>&1 || true
+    wait "$UPGRADE_PLACEHOLDER_PID" >/dev/null 2>&1 || true
+    UPGRADE_PLACEHOLDER_PID=""
+  fi
+}
+
 backup_state_before_upgrade() {
-  local version marker stamp archive temporary
+  local version marker stamp archive temporary tar_status
   version="$(openclaw_runtime_version)"
   if [ -z "$version" ]; then
     echo "ERROR: Could not determine the bundled OpenClaw version; refusing an unprotected startup."
@@ -621,14 +664,18 @@ backup_state_before_upgrade() {
   rm -f "$temporary"
 
   echo "INFO: Creating pre-upgrade state backup for OpenClaw ${version}..."
-  if ! tar -C "$OPENCLAW_CONFIG_DIR" \
+  start_upgrade_placeholder
+  tar_status=0
+  tar -C "$OPENCLAW_CONFIG_DIR" \
       --exclude='./upgrade-backups' \
       --exclude='./media' \
       --exclude='./npm' \
       --exclude='./skills' \
       --exclude='./logs' \
       --exclude='./.cache' \
-      -czf "$temporary" .; then
+      -czf "$temporary" . || tar_status=$?
+  stop_upgrade_placeholder
+  if [ "$tar_status" -ne 0 ]; then
     rm -f "$temporary"
     echo "ERROR: Could not create pre-upgrade state backup."
     return 1
