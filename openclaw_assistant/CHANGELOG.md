@@ -4,6 +4,14 @@ All notable changes to the OpenClaw Assistant Home Assistant Add-on will be docu
 
 ## [Unreleased]
 
+### Fixed
+
+- The Supervisor watchdog no longer restarts the add-on in the middle of the
+  pre-upgrade state archive. The watchdog probes port 48099, which nginx only
+  opens after the archive; on a Raspberry Pi the archive takes 10-20 minutes,
+  so every start was killed and left another `.tar.gz.tmp` behind (#196).
+  While the archive runs, a small placeholder now holds the port and answers 503.
+
 ### Added
 
 - **Safe OpenClaw database upgrades**: before the add-on starts an OpenClaw
