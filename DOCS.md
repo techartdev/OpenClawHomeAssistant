@@ -1136,6 +1136,58 @@ If Telegram is configured but polling fails with network fetch errors:
 
 When proxy is enabled, add-on startup also applies default bypass ranges via `NO_PROXY`/`no_proxy` for localhost and private network ranges.
 
+### Ask OpenClaw: `cannot attest NODE_OPTIONS option --require`
+
+Verified Codex inference rejects Node.js code-preloading options such as
+`--require`. Earlier add-on images always injected the outbound proxy shim,
+even with an empty `http_proxy` option. The shim did nothing without a proxy,
+but its presence in `NODE_OPTIONS` still prevented runtime verification.
+
+Starting with add-on `0.5.97`, the add-on only injects that shim when one of
+`HTTP_PROXY`, `HTTPS_PROXY`, `http_proxy`, or `https_proxy` is non-empty.
+Existing Node.js heap/DNS options are preserved; an operator-supplied preload
+is not removed. No OpenClaw verification or permission checks are disabled.
+
+If a proxy is actually enabled, the Gateway still uses the shim and Codex's
+verified-runtime restriction still applies. OpenClaw supports a scoped
+alternative in `/config/.openclaw/openclaw.json`: merge `NODE_OPTIONS` into
+`plugins.entries.codex.config.appServer.clearEnv`, preserving any existing
+entries and other configuration. For example, the resulting subtree may be:
+
+```json
+{
+  "plugins": {
+    "entries": {
+      "codex": {
+        "config": {
+          "appServer": {
+            "clearEnv": ["NODE_OPTIONS"]
+          }
+        }
+      }
+    }
+  }
+}
+```
+
+This is a configuration fragment, not a replacement for your complete config.
+It prevents only spawned Codex processes and their descendants from inheriting
+`NODE_OPTIONS`; the Gateway retains its proxy shim. It also removes any heap,
+DNS, or other options carried in that variable from those child processes.
+Confirm that Codex and its Node.js tools can access the network without the
+shim before adopting this alternative. Generic HTTP(S) proxy environment
+variables are not cleared by this setting, but that alone does not guarantee
+proxy support for every child tool. The add-on does not set this policy
+automatically or change existing Codex settings.
+
+The config file is in persistent `/config/` storage and the add-on's current
+startup helper preserves this subtree during normal updates/restarts. In
+contrast, edits to `/run.sh` or installed packages inside the container are
+replaced by image updates. Restoring an older config or a future incompatible
+OpenClaw migration may require reapplying/reviewing the setting. Verify it after
+an update and retry the function through your supported configuration-apply
+path; do not disable runtime verification to bypass the error.
+
 ### Skills disappearing after update
 
 Built-in skills are synced to persistent storage on each startup. If skills are missing:
