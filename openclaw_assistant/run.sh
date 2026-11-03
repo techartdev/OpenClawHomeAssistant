@@ -1129,9 +1129,14 @@ fi
 # ------------------------------------------------------------------------------
 # Proxy shim for undici/OpenClaw startup
 # Keep official OpenClaw npm release while enabling HTTP(S)_PROXY support.
+# Match the shim's activation variables. Even a no-op --require is rejected by
+# verified Codex inference, so do not inject code when no proxy is configured.
 # ------------------------------------------------------------------------------
-OPENCLAW_GLOBAL_NODE_MODULES="$(HOME=/root npm root -g 2>/dev/null || true)"
-if [ -f /usr/local/lib/openclaw-proxy-shim.cjs ]; then
+if [ -f /usr/local/lib/openclaw-proxy-shim.cjs ] && {
+  [ -n "${HTTPS_PROXY:-}" ] || [ -n "${HTTP_PROXY:-}" ] ||
+  [ -n "${https_proxy:-}" ] || [ -n "${http_proxy:-}" ];
+}; then
+  OPENCLAW_GLOBAL_NODE_MODULES="$(HOME=/root npm root -g 2>/dev/null || true)"
   if [ -n "${NODE_OPTIONS:-}" ]; then
     export NODE_OPTIONS="--require /usr/local/lib/openclaw-proxy-shim.cjs ${NODE_OPTIONS}"
   else
