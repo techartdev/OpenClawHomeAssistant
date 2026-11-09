@@ -35,6 +35,11 @@ All notable changes to the OpenClaw Assistant Home Assistant Add-on will be docu
 
 ### Fixed
 
+- Only preload the outbound proxy shim when an HTTP(S) proxy is configured,
+  avoiding `Codex runtime artifact cannot attest NODE_OPTIONS option --require`
+  in verified inference / Ask OpenClaw on installations without a proxy.
+  Keep existing Node heap/DNS options and proxy-enabled behavior unchanged
+  (add-on version `0.5.97`).
 - Restrict the Home Assistant Ingress backend on port `48099` to loopback and
   the Supervisor proxy, preventing direct LAN access from bypassing Ingress
   authentication and exposing the terminal.
