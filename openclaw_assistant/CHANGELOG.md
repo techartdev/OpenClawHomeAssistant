@@ -16,6 +16,10 @@ All notable changes to the OpenClaw Assistant Home Assistant Add-on will be docu
 
 ### Changed
 
+- Bundle OpenClaw `2026.11.2` (add-on version `0.5.97`), a patch release with
+  fixes for update reliability, scheduled reminders and cron account routing,
+  duplicate Canvas widgets, provider and messaging stability, and additional
+  security and privacy hardening. No add-on configuration migration is needed.
 - Bundle OpenClaw `2026.10.6` (add-on version `0.5.96`), a focused
   reliability and security update for safer upgrades, state recovery,
   delivery continuity, provider/tool resilience, and channel stability. This
